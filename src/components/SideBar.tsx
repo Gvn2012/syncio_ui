@@ -8,12 +8,14 @@ import {
   Plus, 
   HelpCircle, 
   UserCircle,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from 'lucide-react';
 import './SideBar.css';
 
 const navItems = [
   { id: 'feed', label: 'Feed', icon: LayoutDashboard, active: true },
+  { id: 'organizations', label: 'Organizations', icon: Building2 },
   { id: 'tasks', label: 'Tasks', icon: CheckCircle2 },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'polls', label: 'Polls', icon: BarChart3 },
@@ -52,9 +54,9 @@ export const SideBar: React.FC = () => {
       </nav>
 
       <div className="sidebar-action">
-        <button className="create-post-btn">
+        <button className="create-sync-btn">
           <Plus size={20} />
-          <span>Create Post</span>
+          <span>Create Sync</span>
         </button>
       </div>
 

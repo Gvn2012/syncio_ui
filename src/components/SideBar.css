@@ -90,7 +90,7 @@
   padding: 0 12px;
 }
 
-.create-post-btn {
+.create-sync-btn {
   width: 100%;
   background-color: var(--primary);
   color: #ffffff;
@@ -103,7 +103,7 @@
   box-shadow: 0 4px 12px rgba(37, 150, 190, 0.3);
 }
 
-.create-post-btn:hover {
+.create-sync-btn:hover {
   background-color: var(--primary-hover);
   transform: translateY(-1px);
 }
