@@ -3,25 +3,26 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { 
   LogIn, 
-  User, 
+  Building2, 
+  User,
   Eye, 
   EyeOff, 
   ShieldCheck,
   RefreshCw,
-  AlertCircle,
-  Building2
+  AlertCircle
 } from 'lucide-react';
 import { setUser, type UserRole } from '../../../store/slices/userSlice';
 import { authService } from '../api/auth.service';
 import './Login.css';
 
-export const LoginPage: React.FC = () => {
+export const OrgLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
+    organizationId: '',
     username: '',
     password: ''
   });
@@ -42,7 +43,7 @@ export const LoginPage: React.FC = () => {
       const response = await authService.login({
         username: formData.username,
         password: formData.password,
-        // Standalone login doesn't send organizationId
+        organizationId: formData.organizationId
       });
 
       if (response.success && response.data) {
@@ -56,7 +57,7 @@ export const LoginPage: React.FC = () => {
         }));
         navigate('/');
       } else {
-        setErrorMsg(response.message || 'Login failed. Please try again.');
+        setErrorMsg(response.message || 'Access denied. Please verify your workspace and credentials.');
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -71,42 +72,42 @@ export const LoginPage: React.FC = () => {
     <div className="login-page">
       <div className="login-container">
         {/* Left Pane - Info */}
-        <div className="login-info-pane personal">
+        <div className="login-info-pane workspace">
           <div className="brand-header">
             <RefreshCw size={32} color="#ffffff" />
             <span className="brand-name">SyncIO</span>
           </div>
           
           <div className="info-content">
-            <h1>Personal Curation</h1>
+            <h1>Workspace Access</h1>
             <p>
-              Your standalone hub for high-end editorial curation.
-              Log in to your private workspace and sync your digital ecosystem.
+              Collaborative editorial curation for enterprises and organizations.
+              Enter your workspace ID to sync with your team's ecosystem.
             </p>
           </div>
           
           <div className="info-footer">
             <div className="user-avatars">
-              <img src="https://ui-avatars.com/api/?name=P&background=2596be&color=fff" alt="User" />
-              <img src="https://ui-avatars.com/api/?name=S&background=050a1e&color=fff" alt="User" />
-              <img src="https://ui-avatars.com/api/?name=X&background=64748b&color=fff" alt="User" />
-              <span className="user-count">+2k personal curators</span>
+              <img src="https://ui-avatars.com/api/?name=ORG&background=d97706&color=fff" alt="User" />
+              <img src="https://ui-avatars.com/api/?name=TEAM&background=0284c7&color=fff" alt="User" />
+              <img src="https://ui-avatars.com/api/?name=HQ&background=7c3aed&color=fff" alt="User" />
+              <span className="user-count">+500 enterprise workspaces</span>
             </div>
-            <p className="footer-text">The premium private space for data curators.</p>
+            <p className="footer-text">The professional standard for large-scale data synchronization.</p>
           </div>
         </div>
 
         {/* Right Pane - Form */}
         <div className="login-form-pane">
           <header className="form-header">
-            <h2>Sign In</h2>
-            <p>Enter your credentials to access your personal hub.</p>
+            <h2>Enter Workspace</h2>
+            <p>Sign in to your organization to manage shared curated flows.</p>
           </header>
 
           <div className="login-type-link">
-            <Link to="/login/org" className="switch-to-org">
-              <Building2 size={16} />
-              <span>Logging into a workspace? Go to Org Login</span>
+            <Link to="/login" className="switch-to-personal">
+              <User size={16} />
+              <span>Personal curator? Return to Standalone Login</span>
             </Link>
           </div>
 
@@ -119,12 +120,27 @@ export const LoginPage: React.FC = () => {
 
           <form className="login-form" onSubmit={handleLogin}>
             <div className="form-group">
+              <label>ORGANIZATION ID</label>
+              <div className="input-wrapper has-icon">
+                <input 
+                  name="organizationId"
+                  type="text" 
+                  placeholder="ORG-NAME-123" 
+                  value={formData.organizationId}
+                  onChange={handleInputChange}
+                  required 
+                />
+                <Building2 size={18} className="input-icon" />
+              </div>
+            </div>
+
+            <div className="form-group">
               <label>USERNAME OR EMAIL</label>
               <div className="input-wrapper has-icon">
                 <input 
                   name="username"
                   type="text" 
-                  placeholder="alex@example.com" 
+                  placeholder="alex@org.example" 
                   value={formData.username}
                   onChange={handleInputChange}
                   required 
@@ -164,14 +180,14 @@ export const LoginPage: React.FC = () => {
               </label>
             </div>
 
-            <button type="submit" className="login-submit-btn" disabled={isLoading}>
-              {isLoading ? 'Authenticating...' : 'Sign In to Hub'}
+            <button type="submit" className="login-submit-btn workspace-btn" disabled={isLoading}>
+              {isLoading ? 'Accessing Workspace...' : 'Sign In to Workspace'}
               {!isLoading && <LogIn size={20} style={{ marginLeft: '8px' }} />}
             </button>
           </form>
 
           <footer className="form-footer">
-            <p>New to SyncIO? <Link to="/register">Create an account</Link></p>
+            <p>Don't have a workspace? <Link to="/contact">Contact Administration</Link></p>
           </footer>
           
           <div className="security-badge">

@@ -5,6 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor, type RootState } from './store';
 import { Layout } from './components/Layout';
 import { LoginPage } from './features/auth/pages/LoginPage';
+import { OrgLoginPage } from './features/auth/pages/OrgLoginPage';
 import { RegisterPage } from './features/auth/pages/RegisterPage';
 import './App.css';
 
@@ -63,6 +64,14 @@ function App() {
               element={
                 <PublicRoute>
                   <LoginPage />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/login/org" 
+              element={
+                <PublicRoute>
+                  <OrgLoginPage />
                 </PublicRoute>
               } 
             />
