@@ -1,0 +1,209 @@
+.feed-item {
+  background: var(--bg-topbar);
+  border-radius: var(--radius-lg);
+  padding: 12px; /* Reduced from 16px */
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); /* Subtle shadow for density */
+  transition: transform var(--transition-speed) var(--transition-bezier), 
+              box-shadow var(--transition-speed) var(--transition-bezier),
+              border-color var(--transition-speed) var(--transition-bezier);
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Reduced from 12px */
+  width: 100%;
+  margin-bottom: 12px; /* Reduced from 16px */
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+}
+
+.feed-item:hover {
+  transform: translate3d(0, -1px, 0); /* Subtle hover for density */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  border-color: var(--primary);
+}
+
+.feed-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.author-info {
+  display: flex;
+  gap: 10px; /* Tight gap */
+  align-items: center;
+}
+
+.author-avatar {
+  width: 40px; /* Reduced from 48px */
+  height: 40px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 1.5px solid var(--bg-main);
+}
+
+.author-details h4 {
+  font-size: 14px; /* Reduced from 16px */
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.author-details p {
+  font-size: 11px; /* Reduced from 12px */
+  color: var(--text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.item-meta {
+  text-align: right;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Content */
+.feed-content {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-main);
+  max-width: 1100px; /* Increased from 850px for wider layout */
+  margin-bottom: 8px;
+}
+
+.feed-image {
+  width: 100%;
+  max-height: 42vh; /* Reduced from 60vh to keep first items more compact as requested */
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-top: 8px;
+  background: var(--bg-main); /* Placeholder feel if image loads slowly */
+}
+
+/* Labels */
+.feed-labels {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.label-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  background: var(--bg-main);
+  color: var(--primary);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+/* Actions */
+.feed-actions {
+  display: flex;
+  gap: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: color var(--transition-speed) var(--transition-bezier);
+}
+
+.action-btn:hover {
+  color: var(--primary);
+}
+
+.action-btn.active {
+  color: var(--primary);
+}
+
+.task-preview {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.task-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Added gap between icon and text */
+  background: #fff1f2;
+  color: #e11d48;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.task-deadline {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Added gap between icon and text */
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+
+.poll-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.poll-option {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--transition-speed) var(--transition-bezier), 
+              background var(--transition-speed) var(--transition-bezier);
+}
+
+.poll-option:hover {
+  border-color: var(--primary);
+}
+
+.poll-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(37, 150, 190, 0.1);
+  transition: width 0.6s ease-out;
+  z-index: 0;
+}
+
+.poll-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.curated-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--primary);
+  background: rgba(37, 150, 190, 0.05);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  margin-bottom: 4px;
+  align-self: flex-start;
+}

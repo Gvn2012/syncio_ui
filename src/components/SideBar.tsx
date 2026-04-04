@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   CheckCircle2, 
@@ -7,22 +7,27 @@ import {
   Megaphone, 
   Plus, 
   HelpCircle, 
-  UserCircle,
+  Settings,
   RefreshCw,
-  Building2
+  Building2,
+  User
 } from 'lucide-react';
+import { currentUser } from '../features/user/data';
 import './SideBar.css';
 
 const navItems = [
-  { id: 'feed', label: 'Feed', icon: LayoutDashboard, active: true },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'tasks', label: 'Tasks', icon: CheckCircle2 },
-  { id: 'messages', label: 'Messages', icon: MessageSquare },
-  { id: 'polls', label: 'Polls', icon: BarChart3 },
-  { id: 'announcements', label: 'Announcements', icon: Megaphone },
+  { id: 'feed', label: 'Feed', icon: LayoutDashboard, path: '/' },
+  { id: 'organizations', label: 'Organizations', icon: Building2, path: '/organizations' },
+  { id: 'tasks', label: 'Tasks', icon: CheckCircle2, path: '/tasks' },
+  { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
+  { id: 'polls', label: 'Polls', icon: BarChart3, path: '/polls' },
+  { id: 'announcements', label: 'Announcements', icon: Megaphone, path: '/announcements' },
 ];
 
 export const SideBar: React.FC = () => {
+  const location = useLocation();
+  const user = currentUser;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -41,41 +46,63 @@ export const SideBar: React.FC = () => {
         <ul>
           {navItems.map((item) => (
             <li key={item.id}>
-              <a 
-                href={`#${item.id}`} 
-                className={`nav-item ${item.active ? 'active' : ''}`}
+              <Link 
+                to={item.path} 
+                className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
               >
                 <item.icon size={20} className="nav-icon" />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
       </nav>
 
-      <div className="sidebar-action">
-        <button className="create-sync-btn">
-          <Plus size={20} />
-          <span>Create Sync</span>
-        </button>
-      </div>
+      {!['/'].includes(location.pathname) && (
+        <div className="sidebar-action">
+          <Link to="/create-post" className="create-sync-btn-link">
+            <button className="create-sync-btn">
+              <Plus size={18} />
+              <span>Create Sync</span>
+            </button>
+          </Link>
+        </div>
+      )}
+
 
       <div className="sidebar-footer">
+        <div className="user-profile-mini">
+          <Link to="/profile" className="user-info-link">
+            <img src={user.profile?.avatarUrl} alt={user.firstName} className="user-avatar-small" />
+            <div className="user-name-role">
+              <span className="user-name">{user.firstName} {user.lastName}</span>
+              <span className="user-role">{user.employments[0]?.jobTitle}</span>
+            </div>
+          </Link>
+        </div>
+        
         <ul>
           <li>
-            <a href="#support" className="nav-item">
+            <Link to="/support" className="nav-item">
               <HelpCircle size={20} className="nav-icon" />
               <span>Support</span>
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="#account" className="nav-item">
-              <UserCircle size={20} className="nav-icon" />
-              <span>Account</span>
-            </a>
+            <Link to="/profile" className={`nav-item ${location.pathname === '/profile' ? 'active' : ''}`}>
+              <User size={20} className="nav-icon" />
+              <span>Profile</span>
+            </Link>
+          </li>
+          <li>
+            <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
+              <Settings size={20} className="nav-icon" />
+              <span>Settings</span>
+            </Link>
           </li>
         </ul>
       </div>
     </aside>
   );
 };
+

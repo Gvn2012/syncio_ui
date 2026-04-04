@@ -1,7 +1,5 @@
-.feed-view {
-  max-width: 800px;
-  margin: 0 auto;
-}
+/* Feed view fluidity is now handled in FeedScreen.css */
+
 
 .page-header {
   margin-bottom: 32px;

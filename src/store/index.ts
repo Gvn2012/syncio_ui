@@ -3,17 +3,19 @@ import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, 
 import storage from 'redux-persist/lib/storage';
 import userReducer from './slices/userSlice';
 import uiReducer from './slices/uiSlice';
+import preferencesReducer from './slices/preferencesSlice';
 
 const rootReducer = combineReducers({
   user: userReducer,
   ui: uiReducer,
+  preferences: preferencesReducer,
 });
 
 const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  whitelist: ['user', 'ui'], // Persist both user and ui state
+  whitelist: ['user', 'ui', 'preferences'], // Persist user, ui, and preferences state
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

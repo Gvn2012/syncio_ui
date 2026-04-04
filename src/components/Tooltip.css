@@ -1,0 +1,103 @@
+.tooltip-container {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.tooltip-content {
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  max-width: 260px;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* Variants */
+.tooltip-variant-default {
+  background: rgba(15, 23, 42, 0.85); /* Slightly translucent dark */
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='light'] .tooltip-variant-default {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+.tooltip-variant-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #efa0a0;
+  border-color: var(--error);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+  animation: tooltip-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes tooltip-shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+.tooltip-variant-success {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.tooltip-variant-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.tooltip-icon {
+  flex-shrink: 0;
+}
+
+/* Arrow */
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  border: inherit;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.tooltip-pos-top .tooltip-arrow {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.tooltip-pos-bottom .tooltip-arrow {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tooltip-pos-left .tooltip-arrow {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%) rotate(135deg);
+}
+
+.tooltip-pos-right .tooltip-arrow {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%) rotate(315deg);
+}

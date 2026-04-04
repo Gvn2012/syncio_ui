@@ -1,20 +1,23 @@
 .register-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
+  flex-direction: column; /* Changed to allow natural scrolling */
   align-items: center;
-  justify-content: center;
-  background-color: #f8fafc;
+  justify-content: center; /* Centered vertically */
+  background-color: var(--bg-main);
   font-family: 'Inter', sans-serif;
-  padding: 40px 0;
+  padding: 20px 20px; /* Padding for scrolling buffer */
+  overflow-y: auto;
 }
 
 .register-container {
-  width: 800px;
+  width: 900px;
   max-width: 95vw;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-  padding: 60px;
+  box-shadow: var(--shadow-lg);
+  padding: 30px;
   display: flex;
   flex-direction: column;
 }
@@ -23,27 +26,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  margin-bottom: 50px;
+  gap: 12px; /* Smaller gap */
+  margin-bottom: 40px;
 }
 
 .progress-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #94a3b8;
+  gap: 0; /* Gap managed by label animation */
+  color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-step.active,
+.progress-step.completed {
+  color: var(--primary);
 }
 
 .progress-step.active {
-  color: #2596be;
+  gap: 10px;
+}
+
+.step-label {
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.active .step-label {
+  max-width: 150px;
+  opacity: 1;
 }
 
 .step-num {
   width: 28px;
   height: 28px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -51,34 +73,35 @@
   font-size: 0.8rem;
 }
 
-.active .step-num {
-  background-color: #2596be;
-  border-color: #2596be;
+.active .step-num,
+.completed .step-num {
+  background-color: var(--primary);
+  border-color: var(--primary);
   color: #ffffff;
 }
 
 .progress-line {
-  width: 100px;
+  width: 40px; /* Shorter line */
   height: 1.5px;
   background-color: #e2e8f0;
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 }
 
 .register-header h1 {
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  color: #1e293b;
-  margin-top: 20px;
-  margin-bottom: 15px;
+  color: var(--text-main);
+  margin-top: 10px;
+  margin-bottom: 4px;
 }
 
 .register-header p {
-  color: #64748b;
-  font-size: 1.1rem;
+  color: var(--text-muted);
+  font-size: 1rem;
 }
 
 .form-grid {
@@ -95,7 +118,7 @@
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 8px;
   letter-spacing: 0.05em;
 }
@@ -103,11 +126,21 @@
 .form-group input {
   width: 100%;
   padding: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 1rem;
-  color: #1e293b;
+  color: var(--text-main);
+  background-color: var(--bg-main); /* Standardized theme background */
   box-sizing: border-box;
+}
+
+/* Fix browser autofill background in Register */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-main);
+  -webkit-box-shadow: 0 0 0px 1000px var(--bg-main) inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .form-group input:focus {
@@ -161,18 +194,19 @@
 /* Path Selection Styles */
 .selection-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .paths-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
   margin-bottom: 40px;
+  width: 100%;
 }
 
 .path-card {
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 20px;
   padding: 30px;
   cursor: pointer;
@@ -181,46 +215,47 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  background-color: var(--bg-main);
 }
 
 .path-card:hover {
-  border-color: #2596be;
-  background-color: #f0f9ff;
+  border-color: var(--primary);
+  background-color: var(--bg-search);
   transform: scale(1.02);
 }
 
 .path-card.selected {
-  border-color: #2596be;
-  background-color: #f0f9ff;
+  border-color: var(--primary);
+  background-color: var(--bg-search);
   box-shadow: 0 10px 25px rgba(37, 150, 190, 0.15);
 }
 
 .path-icon {
   width: 64px;
   height: 64px;
-  background-color: #f1f5f9;
+  background-color: var(--bg-sidebar);
   border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--text-sidebar);
   margin-bottom: 20px;
 }
 
 .selected .path-icon {
-  background-color: #2596be;
+  background-color: var(--primary);
   color: #ffffff;
 }
 
 .path-info h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-main);
   margin-bottom: 12px;
 }
 
 .path-info p {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.9rem;
   line-height: 1.5;
   margin-bottom: 20px;
@@ -259,4 +294,82 @@
 
 .back-btn:hover {
   color: #64748b;
+}
+
+/* OTP Verification Styles */
+.otp-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.otp-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 30px 0;
+}
+
+.otp-input {
+  width: 54px;
+  height: 64px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--bg-main);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.2s;
+  outline: none;
+}
+
+.otp-input:focus {
+  border-color: var(--primary);
+  background-color: var(--bg-card);
+  box-shadow: 0 0 0 4px var(--primary-alpha-10);
+  transform: translateY(-2px);
+}
+
+.otp-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.resend-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.resend-btn:hover {
+  background-color: var(--primary-alpha-10);
+}
+
+.resend-btn svg {
+  transition: transform 0.3s;
+}
+
+.resend-btn:hover svg {
+  transform: rotate(-30deg);
+}
+
+.otp-divider {
+  width: 40px;
+  height: 1px;
+  background-color: var(--border-color);
+  opacity: 0.5;
+  margin: 5px 0;
 }

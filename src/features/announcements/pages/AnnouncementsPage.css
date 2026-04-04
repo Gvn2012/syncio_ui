@@ -1,0 +1,133 @@
+.announcements-page {
+  padding: 12px 1vw;
+  max-width: 1000px; /* Centered narrow column for readability */
+  margin: 0 auto;
+}
+
+.announcements-header {
+  margin-bottom: 40px;
+}
+
+.announcements-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.announcements-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Announcement Card Styles */
+.announcement-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-speed) var(--transition-bezier);
+  position: relative;
+}
+
+.announcement-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.announcement-card.pinned {
+  border-left: 4px solid var(--primary);
+}
+
+.announcement-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.announcement-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.announcement-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary);
+  letter-spacing: 0.1em;
+  background: rgba(37, 150, 190, 0.05);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.announcement-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pinned-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.announcement-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.announcement-content {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-main);
+  margin-bottom: 24px;
+}
+
+.announcement-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.announcement-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.announcement-author img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.announcement-author-info span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.read-more {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.read-more:hover {
+  text-decoration: underline;
+}

@@ -3,9 +3,14 @@
 :root {
   --primary: #2596be;
   --primary-hover: #1e7a9e;
+  --primary-alpha-10: rgba(37, 150, 190, 0.1);
+  --primary-alpha-20: rgba(37, 150, 190, 0.2);
   --bg-sidebar: #050a1e;
-  --bg-main: #f8fafc;
+  --bg-main: #f1f5f9;
   --bg-topbar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-header-glass: rgba(241, 245, 249, 0.8);
   --bg-search: #f1f5f9;
   --text-main: #1e293b;
   --text-muted: #64748b;
@@ -15,16 +20,47 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
-  --transition: all 0.2s ease;
+  --transition-speed: 0.2s;
+  --transition-bezier: cubic-bezier(0.4, 0, 0.2, 1);
   --sidebar-width: 280px;
   --topbar-height: 70px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+
+  /* Semantic Colors */
+  --error: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #3b82f6;
 }
+
+[data-theme='dark'] {
+  --bg-sidebar: #020617;
+  --bg-main: #0f172a;
+  --bg-topbar: #1e293b;
+  --bg-card: #1e293b;
+  --bg-surface-elevated: #1e293b;
+  --bg-header-glass: rgba(15, 23, 42, 0.8);
+  --bg-search: #334155;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-sidebar: #94a3b8;
+  --text-sidebar-active: #ffffff;
+  --border-color: #334155;
+}
+
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html {
+  height: 100%;
 }
 
 body {
@@ -33,7 +69,11 @@ body {
   background-color: var(--bg-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 button {
@@ -67,6 +107,7 @@ input {
   display: flex;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 
 .main-content {
@@ -74,10 +115,16 @@ input {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 .page-container {
   flex: 1;
-  overflow-y: auto;
-  padding: 24px;
+  overflow-y: scroll; /* Use scroll instead of auto to ensure consistent layer creation */
+  padding: 16px; /* Reduced from 24px for higher density */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto; /* Instant scroll response */
+  backface-visibility: hidden; /* Prevent flicker */
+  transform: translateZ(0); /* Force GPU composite layer */
+  will-change: scroll-position;
 }
