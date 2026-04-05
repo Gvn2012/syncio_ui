@@ -16,12 +16,24 @@ export interface ErrorResource {
   detail?: string;
 }
 
-/**
- * Login Data structure returned from http://syncio.site/api/v1/users/login
- */
 export interface LoginData {
   accessToken: string;
   refreshToken: string;
   userId: string;
   userRole: 'User' | 'Admin';
+}
+
+export interface EmailVerificationResponse {
+  emailVerificationId: string;
+  email: string;
+  resendAfterSeconds: number;
+}
+
+export interface RegisterData {
+  username: string;
+  password: string;
+  email: string;
+  emailVerificationId: string;
+  phoneNumber: string;
+  dateBirth: string; // ISO format
 }

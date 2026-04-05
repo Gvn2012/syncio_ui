@@ -25,8 +25,12 @@ export const RegisterPage: React.FC = () => {
     lastName: '',
     username: '',
     email: '',
-    password: ''
+    password: '',
+    phoneNumber: '',
+    dateBirth: ''
   });
+  const [emailVerificationId, setEmailVerificationId] = useState<string | null>(null);
+  const [resendTimer, setResendTimer] = useState(0);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -40,7 +44,7 @@ export const RegisterPage: React.FC = () => {
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic weight validation (just for UX, backend handles strictly)
+    // Basic validation
     if (formData.password.length < 8) {
       dispatch(showError('Password must be at least 8 characters long.'));
       return;
@@ -48,27 +52,20 @@ export const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await authService.checkAvailability(formData.email, formData.username);
+      // Step 1: Check availability and request verification
+      // The backend POST /email-verifications usually handles existing user check
+      const response = await authService.requestEmailVerification(formData.email);
       
       if (response.success) {
-        const { isEmailAvailable, isUsernameAvailable } = response.data;
-        
-        if (!isEmailAvailable && !isUsernameAvailable) {
-          dispatch(showError('Both email and username are already taken. Please try others.'));
-        } else if (!isEmailAvailable) {
-          dispatch(showError('This email is already associated with an account.'));
-        } else if (!isUsernameAvailable) {
-          dispatch(showError('This username is already taken. Please choose another one.'));
-        } else {
-          // Success - move to next step
-          setStep(2);
-        }
+        setEmailVerificationId(response.data.emailVerificationId);
+        setResendTimer(response.data.resendAfterSeconds || 60);
+        setStep(2);
       } else {
-        dispatch(showError(response.message || 'Validation failed. Please try again.'));
+        dispatch(showError(response.message || 'Verification request failed.'));
       }
     } catch (error: any) {
-      console.error('Availability check error:', error);
-      const errorMsg = error.response?.data?.message || 'Connection error. Please check your network.';
+      console.error('Email verification error:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to send verification code.';
       dispatch(showError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -94,17 +91,90 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.every(digit => digit !== '')) {
-      setStep(3);
+    const code = otp.join('');
+    if (code.length === 6 && emailVerificationId) {
+      setIsLoading(true);
+      try {
+        const response = await authService.verifyEmail(emailVerificationId, code);
+        if (response.success) {
+          // emailVerificationId remains the same as per backend requirement
+          setStep(3);
+        } else {
+          dispatch(showError(response.message || 'Invalid verification code.'));
+        }
+      } catch (error: any) {
+        console.error('OTP verification error:', error);
+        const errorMsg = error.response?.data?.message || 'Verification failed.';
+        dispatch(showError(errorMsg));
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleComplete = () => {
-    // Navigate to login for now
-    navigate('/login');
+  const handleResendOtp = async () => {
+    if (resendTimer > 0 || !emailVerificationId) return;
+
+    setIsLoading(true);
+    try {
+      const response = await authService.resendEmailVerification(emailVerificationId);
+      if (response.success) {
+        setResendTimer(60); // Reset timer to 60s
+        setOtp(['', '', '', '', '', '']); // Clear OTP inputs
+        otpRefs.current[0]?.focus();
+      } else {
+        dispatch(showError(response.message || 'Failed to resend code.'));
+      }
+    } catch (error: any) {
+      console.error('Resend OTP error:', error);
+      const errorMsg = error.response?.data?.message || 'Resend failed.';
+      dispatch(showError(errorMsg));
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleComplete = async () => {
+    if (!emailVerificationId) return;
+
+    setIsLoading(true);
+    try {
+      const registerPayload = {
+        username: formData.username,
+        password: formData.password,
+        email: formData.email,
+        emailVerificationId: emailVerificationId,
+        phoneNumber: formData.phoneNumber,
+        dateBirth: formData.dateBirth
+      };
+
+      const response = await authService.register(registerPayload);
+      if (response.success) {
+        navigate('/login');
+      } else {
+        dispatch(showError(response.message || 'Registration failed.'));
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      const errorMsg = error.response?.data?.message || 'Registration failed.';
+      dispatch(showError(errorMsg));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Timer logic for resend cooldown
+  useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   // Focus first OTP input on step 2
   useEffect(() => {
@@ -222,6 +292,27 @@ export const RegisterPage: React.FC = () => {
                         required 
                       />
                     </div>
+                    <div className="form-group">
+                      <label>PHONE NUMBER</label>
+                      <input 
+                        name="phoneNumber"
+                        type="tel" 
+                        placeholder="E.g. +84901234567" 
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                        required 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>DATE OF BIRTH</label>
+                      <input 
+                        name="dateBirth"
+                        type="date" 
+                        value={formData.dateBirth}
+                        onChange={handleInputChange}
+                        required 
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group">
@@ -286,15 +377,29 @@ export const RegisterPage: React.FC = () => {
                     ))}
                   </div>
 
-                  <button type="submit" className="register-btn" disabled={otp.some(d => d === '')}>
-                    Verify & Continue
-                    <CheckCircle2 size={20} style={{ marginLeft: '10px' }} />
+                  <button type="submit" className="register-btn" disabled={otp.some(d => d === '') || isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} style={{ marginRight: '10px' }} />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        Verify & Continue
+                        <CheckCircle2 size={20} style={{ marginLeft: '10px' }} />
+                      </>
+                    )}
                   </button>
 
                   <div className="otp-options">
-                    <button type="button" className="resend-btn" onClick={() => setOtp(['', '', '', '', '', ''])}>
+                    <button 
+                      type="button" 
+                      className="resend-btn" 
+                      onClick={handleResendOtp}
+                      disabled={resendTimer > 0 || isLoading}
+                    >
                       <RotateCcw size={16} />
-                      Resend Code
+                      {resendTimer > 0 ? `Resend Code (${resendTimer}s)` : 'Resend Code'}
                     </button>
                     <div className="otp-divider"></div>
                     <button type="button" className="back-btn" onClick={() => setStep(1)}>
@@ -369,9 +474,18 @@ export const RegisterPage: React.FC = () => {
                   </div>
                 </div>
 
-                <button onClick={handleComplete} className="register-btn finish">
-                  Complete Registration
-                  <UserPlus size={20} style={{ marginLeft: '10px' }} />
+                <button onClick={handleComplete} className="register-btn finish" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} style={{ marginRight: '10px' }} />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      Complete Registration
+                      <UserPlus size={20} style={{ marginLeft: '10px' }} />
+                    </>
+                  )}
                 </button>
                 
                 <button onClick={() => setStep(2)} className="back-btn">
