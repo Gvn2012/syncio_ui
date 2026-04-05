@@ -12,6 +12,17 @@ export const authService = {
   },
   
   /**
+   * Check if username or email is available.
+   * URI: http://syncio.site/api/v1/users/check-username-email-availability?email=&username=
+   */
+  checkAvailability: async (email: string, username: string): Promise<APIResource<{ isEmailAvailable: boolean, isUsernameAvailable: boolean }>> => {
+    const response = await api.get<APIResource<{ isEmailAvailable: boolean, isUsernameAvailable: boolean }>>(
+      `users/check-username-email-availability?email=${encodeURIComponent(email)}&username=${encodeURIComponent(username)}`
+    );
+    return response.data;
+  },
+  
+  /**
    * Registration placeholder (can be expanded later)
    */
   register: async (userData: any): Promise<APIResource<any>> => {

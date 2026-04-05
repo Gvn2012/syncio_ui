@@ -149,6 +149,8 @@ function AppRoutes() {
   );
 }
 
+import { GlobalError } from './components/GlobalError';
+
 function AppContent() {
   const { theme } = useSelector((state: RootState) => state.ui);
   
@@ -159,6 +161,7 @@ function AppContent() {
   return (
     <>
       <AppRoutes />
+      <GlobalError />
       <ImageLightbox />
       <GlobalTooltip />
     </>

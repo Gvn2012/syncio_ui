@@ -7,6 +7,10 @@ interface UIState {
   language: 'en' | 'vi' | 'zh';
   isSidebarOpen: boolean;
   activeLightboxImage: string | null;
+  globalError: {
+    message: string | null;
+    isVisible: boolean;
+  };
 }
 
 const initialState: UIState = {
@@ -14,6 +18,10 @@ const initialState: UIState = {
   language: 'en',
   isSidebarOpen: true,
   activeLightboxImage: null,
+  globalError: {
+    message: null,
+    isVisible: false,
+  },
 };
 
 const uiSlice = createSlice({
@@ -35,8 +43,23 @@ const uiSlice = createSlice({
     setLightboxImage: (state, action: PayloadAction<string | null>) => {
       state.activeLightboxImage = action.payload;
     },
+    showError: (state, action: PayloadAction<string>) => {
+      state.globalError.message = action.payload;
+      state.globalError.isVisible = true;
+    },
+    hideError: (state) => {
+      state.globalError.isVisible = false;
+    },
   },
 });
 
-export const { toggleTheme, setTheme, setLanguage, toggleSidebar, setLightboxImage } = uiSlice.actions;
+export const { 
+  toggleTheme, 
+  setTheme, 
+  setLanguage, 
+  toggleSidebar, 
+  setLightboxImage,
+  showError,
+  hideError
+} = uiSlice.actions;
 export default uiSlice.reducer;

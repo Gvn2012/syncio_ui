@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDispatch } from 'react-redux';
 import { 
   UserPlus, 
   User, 
@@ -9,8 +10,11 @@ import {
   ArrowRight,
   CheckCircle2,
   Globe,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
+import { authService } from '../api/auth.service';
+import { showError } from '../../../store/slices/uiSlice';
 import './Register.css';
 
 export const RegisterPage: React.FC = () => {
@@ -24,16 +28,51 @@ export const RegisterPage: React.FC = () => {
     password: ''
   });
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleStep1Submit = (e: React.FormEvent) => {
+  const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStep(2);
+    
+    // Basic weight validation (just for UX, backend handles strictly)
+    if (formData.password.length < 8) {
+      dispatch(showError('Password must be at least 8 characters long.'));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authService.checkAvailability(formData.email, formData.username);
+      
+      if (response.success) {
+        const { isEmailAvailable, isUsernameAvailable } = response.data;
+        
+        if (!isEmailAvailable && !isUsernameAvailable) {
+          dispatch(showError('Both email and username are already taken. Please try others.'));
+        } else if (!isEmailAvailable) {
+          dispatch(showError('This email is already associated with an account.'));
+        } else if (!isUsernameAvailable) {
+          dispatch(showError('This username is already taken. Please choose another one.'));
+        } else {
+          // Success - move to next step
+          setStep(2);
+        }
+      } else {
+        dispatch(showError(response.message || 'Validation failed. Please try again.'));
+      }
+    } catch (error: any) {
+      console.error('Availability check error:', error);
+      const errorMsg = error.response?.data?.message || 'Connection error. Please check your network.';
+      dispatch(showError(errorMsg));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -76,29 +115,6 @@ export const RegisterPage: React.FC = () => {
     }
   }, [step]);
 
-  // Page transition variants
-  const variants = {
-    initial: (direction: number) => ({
-      x: direction > 0 ? 50 : -50,
-      opacity: 0,
-    }),
-    animate: {
-      x: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.4,
-        ease: [0.4, 0, 0.2, 1],
-      }
-    },
-    exit: (direction: number) => ({
-      x: direction > 0 ? -50 : 50,
-      opacity: 0,
-      transition: {
-        duration: 0.3,
-        ease: [0.4, 0, 0.2, 1],
-      }
-    })
-  };
 
   return (
     <div className="register-page">
@@ -221,9 +237,18 @@ export const RegisterPage: React.FC = () => {
                     <p className="helper-text">Must be at least 8 characters with a symbol.</p>
                   </div>
 
-                  <button type="submit" className="register-btn">
-                    Continue to Verification
-                    <ArrowRight size={20} style={{ marginLeft: '10px' }} />
+                  <button type="submit" className="register-btn" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} style={{ marginRight: '10px' }} />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        Continue to Verification
+                        <ArrowRight size={20} style={{ marginLeft: '10px' }} />
+                      </>
+                    )}
                   </button>
                 </form>
               </motion.div>
