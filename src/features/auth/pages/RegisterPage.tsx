@@ -52,8 +52,32 @@ export const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Step 1: Check availability and request verification
-      // The backend POST /email-verifications usually handles existing user check
+      // Step 0: Check availability of email and username
+      const availabilityResponse = await authService.checkAvailability(formData.email, formData.username);
+      
+      if (availabilityResponse.success) {
+        const { isEmailAvailable, isUsernameAvailable } = availabilityResponse.data;
+        
+        if (!isEmailAvailable && !isUsernameAvailable) {
+          dispatch(showError('Both email and username are already taken.'));
+          return;
+        }
+        
+        if (!isEmailAvailable) {
+          dispatch(showError('This email is already registered.'));
+          return;
+        }
+        
+        if (!isUsernameAvailable) {
+          dispatch(showError('This username is already taken.'));
+          return;
+        }
+      } else {
+        dispatch(showError(availabilityResponse.message || 'Failed to verify availability.'));
+        return;
+      }
+
+      // Step 1: Request verification if availability check passed
       const response = await authService.requestEmailVerification(formData.email);
       
       if (response.success) {
