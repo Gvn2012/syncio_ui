@@ -15,9 +15,12 @@ import {
   Trash2,
   Star,
   Home,
-  Briefcase
+  Briefcase,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { authService } from '../api/auth.service';
+import { uploadService } from '../../../api/upload.service';
 import { showError } from '../../../store/slices/uiSlice';
 import { type AddressData, type EmergencyContactData, type RegisterData } from '../../../api/types/api-resource';
 import './Register.css';
@@ -71,6 +74,8 @@ export const RegisterPage: React.FC = () => {
     country: '',
     isPrimary: false
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [emailVerificationId, setEmailVerificationId] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -309,11 +314,77 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
+  /**
+   * Generates a PNG file from the first letter of the name
+   */
+  const generateAvatarFile = (fName: string, lName: string): Promise<File> => {
+    return new Promise((resolve) => {
+      const size = 500;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        // Draw background
+        const bgColor = getLetterAvatarColor(fName, lName);
+        ctx.fillStyle = bgColor;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw letter
+        const initial = fName ? fName.charAt(0).toUpperCase() : 'U';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${Math.floor(size * 0.45)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(initial, size / 2, size / 2);
+      }
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], 'default-avatar.png', { type: 'image/png' });
+          resolve(file);
+        }
+      }, 'image/png');
+    });
+  };
+
   const handleComplete = async () => {
     if (!emailVerificationId) return;
 
     setIsLoading(true);
     try {
+      let imageIdToSubmit: string | undefined = undefined;
+      let gcsParams: any = null;
+      let fileToUpload: File | null = profileImage;
+
+      // 1. If no image selected, generate a default one
+      if (!fileToUpload) {
+        fileToUpload = await generateAvatarFile(formData.firstName, formData.lastName);
+      }
+
+      // 2. Get upload URL for the chosen image (either uploaded or generated)
+      try {
+        const uploadResponse = await uploadService.requestUploadUrl({
+          fileName: fileToUpload.name,
+          fileContentType: fileToUpload.type,
+          size: fileToUpload.size
+        });
+
+        console.log(fileToUpload.size)
+
+        if (uploadResponse.success) {
+          imageIdToSubmit = uploadResponse.data.imageId;
+          gcsParams = uploadResponse.data;
+        }
+      } catch (uploadErr) {
+        console.error('Failed to get upload URL:', uploadErr);
+        // We'll continue without image if absolutely necessary, but we tried
+      }
+
+      // 3. Perform registration with imageId
       const registerPayload: RegisterData = {
         username: formData.username,
         password: formData.password,
@@ -323,19 +394,34 @@ export const RegisterPage: React.FC = () => {
         phoneNumber: formData.phoneNumber,
         dateBirth: formData.dateBirth,
         gender: formData.gender,
+        profileImageId: imageIdToSubmit,
         addresses: formData.addresses,
         emergencyContacts: formData.emergencyContacts
       };
+
+      console.log(gcsParams)
 
       if (registrationType === 'admin') {
         registerPayload.organization = formData.organization;
       }
 
-      const response = await authService.register(registerPayload);
-      if (response.success) {
-        navigate('/login');
+      console.log( gcsParams.headers['Content-Type'])
+      console.log(fileToUpload)
+
+      // const response = await authService.register(registerPayload);
+      if (true) {
+        if (gcsParams && fileToUpload) {
+          uploadService.uploadToGcs(
+            gcsParams.uploadUrl,
+            fileToUpload,
+            gcsParams.headers['Content-Type'] || fileToUpload.type,
+            gcsParams.headers
+          ).catch((err: any) => console.error('Background GCS upload failed:', err));
+        }
+        
+        // navigate('/login');
       } else {
-        dispatch(showError(response.message || 'Registration failed.'));
+        dispatch(showError('Registration failed.'));
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -424,11 +510,19 @@ export const RegisterPage: React.FC = () => {
               </div>
               <div className="progress-line"></div>
               <div 
-                className={`progress-step ${step === 6 ? 'active' : ''}`}
+                className={`progress-step ${step === 6 ? 'active' : ''} ${step > 6 ? 'completed' : ''}`}
                 data-tooltip="Address"
               >
-                <span className="step-num">6</span>
+                <span className="step-num">{step > 6 ? <CheckCircle2 size={16} /> : '6'}</span>
                 <span className="step-label">Home</span>
+              </div>
+              <div className="progress-line"></div>
+              <div 
+                className={`progress-step ${step === 7 ? 'active' : ''}`}
+                data-tooltip="Photo"
+              >
+                <span className="step-num">7</span>
+                <span className="step-label">Photo</span>
               </div>
             </>
           ) : (
@@ -442,11 +536,19 @@ export const RegisterPage: React.FC = () => {
               </div>
               <div className="progress-line"></div>
               <div 
-                className={`progress-step ${step === 5 ? 'active' : ''}`}
+                className={`progress-step ${step === 5 ? 'active' : ''} ${step > 5 ? 'completed' : ''}`}
                 data-tooltip="Address"
               >
-                <span className="step-num">5</span>
+                <span className="step-num">{step > 5 ? <CheckCircle2 size={16} /> : '5'}</span>
                 <span className="step-label">Home</span>
+              </div>
+              <div className="progress-line"></div>
+              <div 
+                className={`progress-step ${step === 6 ? 'active' : ''}`}
+                data-tooltip="Photo"
+              >
+                <span className="step-num">6</span>
+                <span className="step-label">Photo</span>
               </div>
             </>
           )}
@@ -831,7 +933,7 @@ export const RegisterPage: React.FC = () => {
                     onAdd={addAddress}
                     onRemove={removeAddress}
                     onTogglePrimary={togglePrimaryAddress}
-                    onComplete={handleComplete}
+                    onComplete={nextStep}
                     isLoading={isLoading}
                   />
                 )}
@@ -857,10 +959,45 @@ export const RegisterPage: React.FC = () => {
                   onAdd={addAddress}
                   onRemove={removeAddress}
                   onTogglePrimary={togglePrimaryAddress}
-                  onComplete={handleComplete}
+                  onComplete={nextStep}
                   isLoading={isLoading}
                 />
                 <button onClick={prevStep} className="back-btn">Go back to emergency info</button>
+              </motion.div>
+            )}
+
+            {((step === 6 && registrationType === 'standalone') || (step === 7 && registrationType === 'admin')) && (
+              <motion.div
+                key="step-photo"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="details-view"
+              >
+                <ProfilePictureStep 
+                  firstName={formData.firstName}
+                  lastName={formData.lastName}
+                  selectedFile={profileImage}
+                  previewUrl={profileImagePreview}
+                  onFileSelect={(file) => {
+                    if (file && file.size > 10 * 1024 * 1024) {
+                      dispatch(showError('Image size must be less than 10MB.'));
+                      return;
+                    }
+                    setProfileImage(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setProfileImagePreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setProfileImagePreview(null);
+                    }
+                  }}
+                  onComplete={handleComplete}
+                  isLoading={isLoading}
+                />
+                <button onClick={prevStep} className="back-btn">Go back to address info</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -875,6 +1012,21 @@ export const RegisterPage: React.FC = () => {
 };
 
 // --- Sub-components for Dynamic Lists ---
+
+// --- Helper Components & Utilities ---
+
+const getLetterAvatarColor = (firstName: string, lastName: string) => {
+  const combined = (firstName + lastName).toLowerCase();
+  const colors = [
+    '#0d9488', '#0891b2', '#2563eb', '#4f46e5', '#7c3aed', 
+    '#9333ea', '#c026d3', '#db2777', '#e11d48', '#ea580c'
+  ];
+  let sum = 0;
+  for (let i = 0; i < combined.length; i++) {
+    sum += combined.charCodeAt(i);
+  }
+  return colors[sum % colors.length];
+};
 
 interface EmergencyContactListProps {
   contacts: EmergencyContactData[];
@@ -1048,10 +1200,106 @@ const AddressList: React.FC<AddressListProps> = ({
         </>
       ) : (
         <>
-          {addresses.length === 0 ? 'Skip & Finish Registration' : 'Complete Registration'}
-          <UserPlus size={20} style={{ marginLeft: '10px' }} />
+          {addresses.length === 0 ? 'Skip & Continue' : 'Continue to Photo'}
+          <ArrowRight size={20} style={{ marginLeft: '10px' }} />
         </>
       )}
     </button>
   </div>
 );
+
+// --- Profile Picture Step Component ---
+
+interface ProfilePictureStepProps {
+  firstName: string;
+  lastName: string;
+  selectedFile: File | null;
+  previewUrl: string | null;
+  onFileSelect: (file: File | null) => void;
+  onComplete: () => void;
+  isLoading: boolean;
+}
+
+const ProfilePictureStep: React.FC<ProfilePictureStepProps> = ({
+  firstName, lastName, selectedFile, previewUrl, onFileSelect, onComplete, isLoading
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const initial = firstName ? firstName.charAt(0).toUpperCase() : 'U';
+  const bgColor = getLetterAvatarColor(firstName, lastName);
+
+  return (
+    <div className="profile-upload-container">
+      <div className="selection-header">
+        <h2>Profile Identity</h2>
+        <p>Set a visual identifier for your global sync profile. (Optional)</p>
+      </div>
+
+      <div className="photo-preview-area">
+        {previewUrl ? (
+          <div className="avatar-preview-circle">
+            <img src={previewUrl} alt="Preview" />
+            <button className="remove-photo-btn" onClick={() => onFileSelect(null)} title="Remove photo">
+              <Plus size={16} style={{ transform: 'rotate(45deg)' }} />
+            </button>
+          </div>
+        ) : (
+          <div 
+            className="avatar-placeholder-circle" 
+            style={{ backgroundColor: bgColor }}
+          >
+            <span className="avatar-letter">{initial}</span>
+            <div className="camera-overlay">
+              <Camera size={24} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="upload-controls">
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onFileSelect(file);
+          }}
+        />
+        <button 
+          className="select-photo-btn" 
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isLoading}
+        >
+          <Upload size={18} />
+          {selectedFile ? 'Change Photo' : 'Upload Photo'}
+        </button>
+        {selectedFile && (
+          <button 
+            className="remove-link-btn" 
+            onClick={() => onFileSelect(null)}
+            disabled={isLoading}
+          >
+            Remove and use default
+          </button>
+        )}
+        <p className="upload-tip">Supports JPG, PNG or WebP. Max 10MB.</p>
+      </div>
+
+      <button onClick={onComplete} className="register-btn finish" disabled={isLoading}>
+        {isLoading ? (
+          <>
+            <Loader2 className="animate-spin" size={20} style={{ marginRight: '10px' }} />
+            Finalizing...
+          </>
+        ) : (
+          <>
+            {!selectedFile ? 'Skip & Finish Registration' : 'Complete Registration'}
+            <UserPlus size={20} style={{ marginLeft: '10px' }} />
+          </>
+        )}
+      </button>
+    </div>
+  );
+};

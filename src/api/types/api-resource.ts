@@ -77,6 +77,7 @@ export interface RegisterData {
   phoneNumber: string;
   dateBirth: string;
   gender: string;
+  profileImageId?: string;
   addresses?: AddressData[];
   emergencyContacts?: EmergencyContactData[];
   organization?: OrganizationData;
