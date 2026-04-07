@@ -26,6 +26,7 @@ import { showError } from '../../../store/slices/uiSlice';
 import { type RegisterRequest as RegisterData } from '../api/types';
 import { type AddressData, type EmergencyContactData } from '../../../api/types/common-types';
 import './Register.css';
+import { form } from 'framer-motion/client';
 
 export const RegisterPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -300,8 +301,8 @@ export const RegisterPage: React.FC = () => {
     try {
       const response = await authService.resendEmailVerification(emailVerificationId);
       if (response.success) {
-        setResendTimer(60); // Reset timer to 60s
-        setOtp(['', '', '', '', '', '']); // Clear OTP inputs
+        setResendTimer(60);
+        setOtp(['', '', '', '', '', '']);
         otpRefs.current[0]?.focus();
       } else {
         dispatch(showError(response.message || 'Failed to resend code.'));
@@ -324,14 +325,12 @@ export const RegisterPage: React.FC = () => {
       const ctx = canvas.getContext('2d');
       
       if (ctx) {
-        // Draw background
         const bgColor = getLetterAvatarColor(fName, lName);
         ctx.fillStyle = bgColor;
         ctx.beginPath();
         ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw letter
         const initial = fName ? fName.charAt(0).toUpperCase() : 'U';
         ctx.fillStyle = '#FFFFFF';
         ctx.font = `bold ${Math.floor(size * 0.45)}px Inter, sans-serif`;
@@ -358,12 +357,10 @@ export const RegisterPage: React.FC = () => {
       let gcsParams: any = null;
       let fileToUpload: File | null = profileImage;
 
-      // 1. If no image selected, generate a default one
       if (!fileToUpload) {
         fileToUpload = await generateAvatarFile(formData.firstName, formData.lastName);
       }
 
-      // 2. Get upload URL for the chosen image (either uploaded or generated)
       try {
         const uploadResponse = await uploadService.requestUploadUrl({
           fileName: fileToUpload.name,
@@ -403,10 +400,8 @@ export const RegisterPage: React.FC = () => {
         registerPayload.organization = formData.organization;
       }
 
-      console.log( gcsParams.headers['Content-Type'])
-      console.log(fileToUpload)
+      console.log(registerPayload)
 
-      // const response = await authService.register(registerPayload);
       if (true) {
         if (gcsParams && fileToUpload) {
           uploadService.uploadToGcs(
@@ -417,7 +412,7 @@ export const RegisterPage: React.FC = () => {
           ).catch((err: any) => console.error('Background GCS upload failed:', err));
         }
         
-        // navigate('/login');
+
       } else {
         dispatch(showError('Registration failed.'));
       }

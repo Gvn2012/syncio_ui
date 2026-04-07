@@ -2,8 +2,9 @@ import type { AddressData, EmergencyContactData } from '../../../api/types/commo
 import type { OrganizationData } from '../../org/api/types';
 
 export interface LoginRequest {
-  usernameOrEmail: string;
+  username: string;
   password: string;
+  organizationId?: string;
 }
 
 export interface LoginResponse {

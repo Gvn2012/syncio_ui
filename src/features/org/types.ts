@@ -1,4 +1,5 @@
 import { OrganizationSize } from '../../api/types/common-types';
+export { OrganizationSize };
 
 export enum OrganizationStatus {
   ACTIVE = 'ACTIVE',
