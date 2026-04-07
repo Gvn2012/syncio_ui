@@ -20,9 +20,11 @@ import {
   Upload
 } from 'lucide-react';
 import { authService } from '../api/auth.service';
+import { OrgService } from '../../org/api/org.service';
 import { uploadService } from '../../../api/upload.service';
 import { showError } from '../../../store/slices/uiSlice';
-import { type AddressData, type EmergencyContactData, type RegisterData } from '../../../api/types/api-resource';
+import { type RegisterRequest as RegisterData } from '../api/types';
+import { type AddressData, type EmergencyContactData } from '../../../api/types/common-types';
 import './Register.css';
 
 export const RegisterPage: React.FC = () => {
@@ -43,7 +45,6 @@ export const RegisterPage: React.FC = () => {
     organization: {
       name: '',
       legalName: '',
-      slug: '',
       description: '',
       industry: '',
       website: '',
@@ -314,9 +315,6 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
-  /**
-   * Generates a PNG file from the first letter of the name
-   */
   const generateAvatarFile = (fName: string, lName: string): Promise<File> => {
     return new Promise((resolve) => {
       const size = 500;
@@ -426,6 +424,36 @@ export const RegisterPage: React.FC = () => {
     } catch (error: any) {
       console.error('Registration error:', error);
       const errorMsg = error.response?.data?.message || 'Registration failed.';
+      dispatch(showError(errorMsg));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOrgStepSubmit = async () => {
+    if (!formData.organization.name) {
+      dispatch(showError('Organization name is required.'));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await OrgService.checkAvailability({ name: formData.organization.name });
+      if (response.success) {
+        if (response.data.isNameAvailable) {
+          nextStep();
+        } else {
+          const suggestions = (response.data.recommendedNames && response.data.recommendedNames.length > 0)
+            ? ` Suggested: ${response.data.recommendedNames.slice(0, 3).join(', ')}` 
+            : '';
+          dispatch(showError(`Organization name "${formData.organization.name}" is already taken.${suggestions}`));
+        }
+      } else {
+        dispatch(showError(response.message || 'Failed to check organization availability.'));
+      }
+    } catch (error: any) {
+      console.error('Org availability error:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to verify organization name.';
       dispatch(showError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -855,13 +883,9 @@ export const RegisterPage: React.FC = () => {
                       <p>Set up your professional workspace information.</p>
                     </div>
                     <div className="form-grid">
-                      <div className="form-group">
-                        <label>ORG NAME</label>
-                        <input name="organization.name" type="text" placeholder="Legal or trade name" value={formData.organization.name} onChange={handleInputChange} required />
-                      </div>
-                      <div className="form-group">
-                        <label>WORKSPACE SLUG</label>
-                        <input name="organization.slug" type="text" placeholder="e.g. my-org" value={formData.organization.slug} onChange={handleInputChange} required />
+                      <div className="form-group span-2">
+                        <label>ORGANIZATION NAME</label>
+                        <input name="organization.name" type="text" placeholder="Enter legal or trade name" value={formData.organization.name} onChange={handleInputChange} required />
                       </div>
                       <div className="form-group">
                         <label>INDUSTRY</label>
@@ -886,9 +910,18 @@ export const RegisterPage: React.FC = () => {
                         <input name="organization.taxId" type="text" placeholder="Tax ID" value={formData.organization.taxId} onChange={handleInputChange} />
                       </div>
                     </div>
-                    <button onClick={nextStep} className="register-btn">
-                      Continue to Emergency
-                      <ArrowRight size={20} style={{ marginLeft: '10px' }} />
+                    <button onClick={handleOrgStepSubmit} className="register-btn" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="animate-spin" size={20} style={{ marginRight: '10px' }} />
+                          Synthesizing...
+                        </>
+                      ) : (
+                        <>
+                          Continue to Emergency
+                          <ArrowRight size={20} style={{ marginLeft: '10px' }} />
+                        </>
+                      )}
                     </button>
                   </>
                 ) : (

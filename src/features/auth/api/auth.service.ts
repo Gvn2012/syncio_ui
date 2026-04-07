@@ -1,18 +1,22 @@
 import api from '../../../api/api';
-import { 
-  type APIResource, 
-  type LoginData, 
-  type EmailVerificationResponse, 
-  type RegisterData 
-} from '../../../api/types/api-resource';
+import type { APIResource } from '../../../api/types/api-resource';
+import type { 
+  LoginRequest, 
+  LoginResponse, 
+  EmailVerificationRequest,
+  EmailVerificationResponse, 
+  VerifyEmailRequest,
+  CheckAvailabilityResponse,
+  RegisterRequest 
+} from './types';
 
 export const authService = {
   /**
    * Send login credentials to the backend.
    * URI: http://syncio.site/api/v1/users/login
    */
-  login: async (credentials: any): Promise<APIResource<LoginData>> => {
-    const response = await api.post<APIResource<LoginData>>('users/login', credentials);
+  login: async (credentials: LoginRequest): Promise<APIResource<LoginResponse>> => {
+    const response = await api.post<APIResource<LoginResponse>>('users/login', credentials);
     return response.data;
   },
   
@@ -20,9 +24,13 @@ export const authService = {
    * Check if username or email is available.
    * URI: http://syncio.site/api/v1/users/check-username-email-availability?email=&username=
    */
-  checkAvailability: async (email: string, username: string): Promise<APIResource<{ isEmailAvailable: boolean, isUsernameAvailable: boolean }>> => {
-    const response = await api.get<APIResource<{ isEmailAvailable: boolean, isUsernameAvailable: boolean }>>(
-      `users/check-username-email-availability?email=${encodeURIComponent(email)}&username=${encodeURIComponent(username)}`
+  checkAvailability: async (email?: string, username?: string): Promise<APIResource<CheckAvailabilityResponse>> => {
+    const query = new URLSearchParams();
+    if (email) query.append('email', email);
+    if (username) query.append('username', username);
+    
+    const response = await api.get<APIResource<CheckAvailabilityResponse>>(
+      `users/check-username-email-availability?${query.toString()}`
     );
     return response.data;
   },
@@ -32,7 +40,8 @@ export const authService = {
    * URI: POST http://syncio.site/api/v1/users/email-verifications
    */
   requestEmailVerification: async (email: string): Promise<APIResource<EmailVerificationResponse>> => {
-    const response = await api.post<APIResource<EmailVerificationResponse>>('users/email-verifications', { email });
+    const request: EmailVerificationRequest = { email };
+    const response = await api.post<APIResource<EmailVerificationResponse>>('users/email-verifications', request);
     return response.data;
   },
 
@@ -41,7 +50,8 @@ export const authService = {
    * URI: POST http://syncio.site/api/v1/users/email-verifications/{id}/verify
    */
   verifyEmail: async (emailVerificationId: string, code: string): Promise<APIResource<any>> => {
-    const response = await api.post<APIResource<any>>(`users/email-verifications/${emailVerificationId}/verify`, { code });
+    const request: VerifyEmailRequest = { code };
+    const response = await api.post<APIResource<any>>(`users/email-verifications/${emailVerificationId}/verify`, request);
     return response.data;
   },
 
@@ -58,7 +68,7 @@ export const authService = {
    * Step 4: Final account registration.
    * URI: POST http://syncio.site/api/v1/users/register
    */
-  register: async (userData: RegisterData): Promise<APIResource<any>> => {
+  register: async (userData: RegisterRequest): Promise<APIResource<any>> => {
     const response = await api.post<APIResource<any>>('users/register', userData);
     return response.data;
   }

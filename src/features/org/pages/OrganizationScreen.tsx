@@ -7,7 +7,6 @@ import {
   Users, 
   Layers, 
   ArrowRight, 
-  Search,
   ExternalLink
 } from 'lucide-react';
 import { demoOrg } from '../data';
@@ -109,13 +108,6 @@ export const OrganizationScreen: React.FC = () => {
                 <div className="info-label">
                   <span className="label">Org Size</span>
                   <span className="value">{org.organizationSize}</span>
-                </div>
-              </div>
-              <div className="info-row" style={{ border: 'none' }}>
-                <Search size={18} className="info-icon" />
-                <div className="info-label">
-                  <span className="label">Discovery Slug</span>
-                  <span className="value">/{org.slug}</span>
                 </div>
               </div>
             </section>
