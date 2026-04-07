@@ -51,4 +51,5 @@ export interface RegisterRequest {
   addresses?: AddressData[];
   emergencyContacts?: EmergencyContactData[];
   organization?: OrganizationData;
+  registrationType: string;
 }

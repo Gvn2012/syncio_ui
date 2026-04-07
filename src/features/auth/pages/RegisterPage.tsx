@@ -368,18 +368,14 @@ export const RegisterPage: React.FC = () => {
           size: fileToUpload.size
         });
 
-        console.log(fileToUpload.size)
-
         if (uploadResponse.success) {
           imageIdToSubmit = uploadResponse.data.imageId;
           gcsParams = uploadResponse.data;
         }
       } catch (uploadErr) {
         console.error('Failed to get upload URL:', uploadErr);
-        // We'll continue without image if absolutely necessary, but we tried
       }
 
-      // 3. Perform registration with imageId
       const registerPayload: RegisterData = {
         username: formData.username,
         password: formData.password,
@@ -391,7 +387,8 @@ export const RegisterPage: React.FC = () => {
         gender: formData.gender,
         profileImageId: imageIdToSubmit,
         addresses: formData.addresses,
-        emergencyContacts: formData.emergencyContacts
+        emergencyContacts: formData.emergencyContacts,
+        registrationType
       };
 
       console.log(gcsParams)
@@ -836,7 +833,25 @@ export const RegisterPage: React.FC = () => {
 
                   <div 
                     className={`path-card ${registrationType === 'standalone' ? 'selected' : ''}`}
-                    onClick={() => setRegistrationType('standalone')}
+                    onClick={() => {
+                      setRegistrationType('standalone');
+                      setFormData(prev => ({
+                        ...prev,
+                        organization: {
+                          name: '',
+                          legalName: '',
+                          description: '',
+                          industry: '',
+                          website: '',
+                          logoUrl: '',
+                          foundedDate: '',
+                          registrationNumber: '',
+                          taxId: '',
+                          organizationSize: 'MICRO' as any,
+                          parentOrganizationId: ''
+                        }
+                      }));
+                    }}
                   >
                     <div className="path-icon"><Globe size={32} /></div>
                     <div className="path-info">
