@@ -1,48 +1,50 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-export type UserRole = 'User' | 'Admin' | null;
 
 interface UserState {
   id: string | null;
   username: string | null;
-  email: string | null;
-  role: UserRole;
+  role: String[];
   token: string | null;
   isAuthenticated: boolean;
+  orgId: string | null;
 }
 
 const initialState: UserState = {
   id: null,
   username: null,
-  email: null,
-  role: null,
+  role: [],
   token: null,
   isAuthenticated: false,
+  orgId: null
 };
 
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<{ id: string; username: string; email: string; role: UserRole; token: string }>) => {
+    setUser: (state, action: PayloadAction<{ id: string; username: string; role: String[]; token: string; orgId: string }>) => {
       state.id = action.payload.id;
       state.username = action.payload.username;
-      state.email = action.payload.email;
       state.role = action.payload.role;
       state.token = action.payload.token;
       state.isAuthenticated = true;
+      state.orgId = action.payload.orgId;
     },
     logout: (state) => {
       state.id = null;
       state.username = null;
-      state.email = null;
-      state.role = null;
+      state.role = [];
       state.token = null;
       state.isAuthenticated = false;
+      state.orgId = null;
     },
-    setRole: (state, action: PayloadAction<UserRole>) => {
+    setRole: (state, action: PayloadAction<String[]>) => {
       state.role = action.payload;
     },
+    setOrgId: (state, action: PayloadAction<string>) => {
+      state.orgId = action.payload;
+    }
   },
 });
 

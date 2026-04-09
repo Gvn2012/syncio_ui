@@ -12,6 +12,7 @@ export interface LoginResponse {
   refreshToken: string;
   userId: string;
   userRole: 'User' | 'Admin';
+  orgId: string;
 }
 
 export interface EmailVerificationRequest {

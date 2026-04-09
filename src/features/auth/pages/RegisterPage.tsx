@@ -40,7 +40,7 @@ export const RegisterPage: React.FC = () => {
     phoneCode: '+84',
     phoneNumber: '',
     dateBirth: '',
-    gender: 'Other',
+    gender: 'OTHER',
     emergencyContacts: [] as EmergencyContactData[],
     addresses: [] as AddressData[],
     organization: {
@@ -257,7 +257,7 @@ export const RegisterPage: React.FC = () => {
     if (!/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // Only take the last character
+    newOtp[index] = value.slice(-1);
     setOtp(newOtp);
 
     // Move to next input if value is entered
@@ -397,9 +397,8 @@ export const RegisterPage: React.FC = () => {
         registerPayload.organization = formData.organization;
       }
 
-      console.log(registerPayload)
-
-      if (true) {
+      const registerResponse = await authService.register(registerPayload);
+      if (registerResponse.success) {
         if (gcsParams && fileToUpload) {
           uploadService.uploadToGcs(
             gcsParams.uploadUrl,
@@ -407,11 +406,10 @@ export const RegisterPage: React.FC = () => {
             gcsParams.headers['Content-Type'] || fileToUpload.type,
             gcsParams.headers
           ).catch((err: any) => console.error('Background GCS upload failed:', err));
+          navigate("/login")
         }
-        
-
       } else {
-        dispatch(showError('Registration failed.'));
+        dispatch(showError(registerResponse.error?.message || 'Registration failed.'));
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -455,7 +453,6 @@ export const RegisterPage: React.FC = () => {
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
 
-  // Timer logic for resend cooldown
   useEffect(() => {
     let interval: any;
     if (resendTimer > 0) {
@@ -466,7 +463,6 @@ export const RegisterPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
-  // Focus first OTP input on step 2
   useEffect(() => {
     if (step === 2) {
       setTimeout(() => {
@@ -697,10 +693,10 @@ export const RegisterPage: React.FC = () => {
                         onChange={handleInputChange}
                         required
                       >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
+                        <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
                       </select>
                     </div>
                   </div>

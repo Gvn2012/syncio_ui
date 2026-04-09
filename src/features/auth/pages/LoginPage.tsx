@@ -12,7 +12,7 @@ import {
   AlertCircle,
   ArrowLeft
 } from 'lucide-react';
-import { setUser, type UserRole } from '../../../store/slices/userSlice';
+import { setUser} from '../../../store/slices/userSlice';
 import { authService } from '../api/auth.service';
 import './Login.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,20 +52,29 @@ export const LoginPage: React.FC = () => {
       });
 
       if (response.success && response.data) {
-        const { userId, userRole, accessToken, username } = response.data as any;
+        const { userId, userRole, accessToken, username, orgId } = response.data as any;
         dispatch(setUser({
           id: userId,
           username: username || formData.username,
-          email: formData.username.includes('@') ? formData.username : '',
-          role: userRole as UserRole,
-          token: accessToken
+          role: userRole as String[],
+          token: accessToken,
+          orgId
         }));
         navigate('/');
       } else {
-        setErrorMsg(response.message || 'Verification failed. Please check your credentials.');
+        setErrorMsg(
+          response.error?.message ||
+          response.message ||
+          'Verification failed. Please check your credentials.'
+        );
       }
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Unauthorized access. Please check your credentials.');
+      setErrorMsg(
+          err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          err.message ||
+        'Unauthorized access. Please check your credentials.'
+      );
     } finally {
       setIsLoading(false);
     }
