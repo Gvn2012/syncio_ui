@@ -2,6 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { type RootState, type AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
+import { CachedImage } from './common/CachedImage';
 
 interface UserAvatarProps {
   className?: string;
@@ -34,8 +35,9 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size }) => {
   };
 
   return (
-    <img 
+    <CachedImage 
       src={avatarUrl} 
+      fallbackSrc={fallbackUrl}
       alt={displayName}
       className={className}
       onError={handleImageError}
