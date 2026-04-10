@@ -10,7 +10,7 @@ import { PollsPage } from './features/polls/pages/PollsPage';
 import { TasksPage } from './features/tasks/pages/TasksPage';
 import { AnnouncementsPage } from './features/announcements/pages/AnnouncementsPage';
 import { ProfileScreen } from './features/user/pages/ProfileScreen';
-import { AccountSettings } from './features/user/pages/AccountSettings';
+import { SettingsPage } from './features/settings/pages/SettingsPage';
 import { OrganizationScreen } from './features/org/pages/OrganizationScreen';
 import { CreatePostScreen } from './features/feed/pages/CreatePostScreen';
 import { MessagesPage } from './features/messages/pages/MessagesPage';
@@ -83,7 +83,7 @@ function AppRoutes() {
           path="/settings" 
           element={
             <ProtectedRoute>
-              <AccountSettings />
+              <SettingsPage />
             </ProtectedRoute>
           } 
         />

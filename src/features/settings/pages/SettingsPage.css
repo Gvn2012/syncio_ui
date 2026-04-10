@@ -206,3 +206,207 @@
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 150, 190, 0.1);
 }
+
+/* Animated Toggle Switch */
+.toggle-switch {
+  width: 44px;
+  height: 24px;
+  background: var(--border-color);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  cursor: pointer;
+  transition: background var(--transition-speed) var(--transition-bezier);
+  position: relative;
+}
+.toggle-switch.active {
+  background: var(--primary);
+}
+.toggle-handle {
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform var(--transition-speed) var(--transition-bezier);
+}
+.toggle-switch.active .toggle-handle {
+  transform: translateX(20px);
+}
+
+/* Flex row item for settings (used for Notifications & Security) */
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+  transition: border-color var(--transition-speed) var(--transition-bezier),
+              box-shadow var(--transition-speed) var(--transition-bezier);
+}
+.settings-row:hover {
+  border-color: var(--primary-alpha-50);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.settings-row-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.settings-row-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgba(37, 150, 190, 0.1);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-row-icon.success {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+.settings-row-text h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.settings-row-text p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+/* Segmented Control Animated */
+.segmented-control-animated {
+  display: inline-flex;
+  background: var(--bg-main);
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  gap: 8px;
+  position: relative;
+}
+.segment-btn-animated {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color var(--transition-speed);
+}
+.segment-btn-animated.active {
+  color: var(--primary);
+}
+.segment-active-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Animated Options Grid */
+.animated-options-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.animated-option-btn {
+  position: relative;
+  padding: 16px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-main);
+  transition: all var(--transition-speed);
+  font-size: 14px;
+  outline: none;
+}
+.animated-option-btn.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+.animated-option-border {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 2px solid var(--primary);
+  background: rgba(37, 150, 190, 0.05);
+}
+.animated-option-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+
+/* Premium Toggle */
+.premium-toggle {
+  width: 56px;
+  height: 32px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  cursor: pointer;
+  position: relative;
+}
+.premium-toggle-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  z-index: 0;
+}
+.premium-toggle-handle {
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.premium-toggle.active {
+  justify-content: flex-end;
+}
+
+/* Spin animation for loader */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
