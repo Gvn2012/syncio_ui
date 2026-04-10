@@ -182,7 +182,6 @@
   box-shadow: 0 4px 12px rgba(37, 150, 190, 0.3);
 }
 
-/* Select Styling */
 .settings-select {
   width: 100%;
   max-width: 400px;
@@ -207,7 +206,6 @@
   box-shadow: 0 0 0 3px rgba(37, 150, 190, 0.1);
 }
 
-/* Animated Toggle Switch */
 .toggle-switch {
   width: 44px;
   height: 24px;
@@ -325,7 +323,6 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-/* Animated Options Grid */
 .animated-options-grid {
   display: flex;
   gap: 16px;
@@ -370,7 +367,6 @@
   z-index: 1;
 }
 
-/* Premium Toggle */
 .premium-toggle {
   width: 56px;
   height: 32px;

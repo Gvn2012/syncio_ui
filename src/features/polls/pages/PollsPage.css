@@ -102,12 +102,12 @@
 
 .poll-option:hover {
   border-color: var(--primary);
-  background: #ffffff;
+  background: var(--bg-surface-elevated);
 }
 
 .poll-option.voted {
   border-color: var(--primary);
-  background: #ffffff;
+  background: var(--bg-surface-elevated);
 }
 
 .poll-result-bar {

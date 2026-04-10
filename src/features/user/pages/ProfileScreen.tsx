@@ -15,7 +15,6 @@ import {
   Trash2,
   Home,
   Briefcase,
-  Shield,
   AlertTriangle,
   User as UserIcon
 } from 'lucide-react';
@@ -27,7 +26,6 @@ import { FeedItem } from '../../feed/components/FeedItem';
 import { demoFeedItems } from '../../feed/data';
 import type { 
   UserAddressResponse, 
-  EmergencyContactResponse, 
   UserSkillResponse 
 } from '../types';
 import './ProfileScreen.css';
@@ -43,15 +41,13 @@ export const ProfileScreen: React.FC = () => {
   const [bioValue, setBioValue] = useState('');
 
   const [localAddresses, setLocalAddresses] = useState<UserAddressResponse[]>([]);
-  const [localContacts, setLocalContacts] = useState<EmergencyContactResponse[]>([]);
+
   const [localSkills, setLocalSkills] = useState<UserSkillResponse[]>([]);
 
   // New item forms
   const [showAddAddress, setShowAddAddress] = useState(false);
-  const [showAddContact, setShowAddContact] = useState(false);
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newAddress, setNewAddress] = useState({ addressType: 'HOME', addressLine1: '', city: '', country: '', postalCode: '' });
-  const [newContact, setNewContact] = useState({ contactName: '', relationship: '', phoneNumber: '', email: '' });
   const [newSkill, setNewSkill] = useState({ skillName: '', proficiencyLevel: 'BEGINNER', yearsOfExperience: 0 });
 
   useEffect(() => {
@@ -64,7 +60,6 @@ export const ProfileScreen: React.FC = () => {
     if (userDetail) {
       setBioValue(userDetail.userProfileResponse?.bio || '');
       setLocalAddresses(userDetail.addresses || []);
-      setLocalContacts(userDetail.emergencyContacts || []);
       setLocalSkills(userDetail.skills || []);
     }
   }, [userDetail]);
@@ -148,23 +143,7 @@ export const ProfileScreen: React.FC = () => {
     // TODO: Call API to create address
   };
 
-  const handleDeleteContact = (contactId: string) => {
-    setLocalContacts(prev => prev.filter(c => c.id !== contactId));
-    // TODO: Call API to delete contact
-  };
 
-  const handleAddContact = () => {
-    const newC: EmergencyContactResponse = {
-      id: `temp-${Date.now()}`,
-      ...newContact,
-      primary: false,
-      priority: localContacts.length + 1,
-    };
-    setLocalContacts(prev => [...prev, newC]);
-    setNewContact({ contactName: '', relationship: '', phoneNumber: '', email: '' });
-    setShowAddContact(false);
-    // TODO: Call API to create contact
-  };
 
   const handleDeleteSkill = (skillId: string) => {
     setLocalSkills(prev => prev.filter(s => s.id !== skillId));
@@ -276,19 +255,6 @@ export const ProfileScreen: React.FC = () => {
         <div className="profile-content-grid">
           {/* LEFT SIDEBAR - User details with CRUD */}
           <aside className="profile-sidebar-column">
-            {/* Profile Completion */}
-            <section className="profile-section-card">
-              <h3 className="section-title">
-                <TrendingUp size={18} color="var(--primary)" />
-                <span>Profile Completion</span>
-              </h3>
-              <div className="completion-bar-container">
-                <div className="completion-bar">
-                  <div className="completion-fill" style={{ width: `${profile?.profileCompletedScore || 0}%` }} />
-                </div>
-                <span className="completion-text">{profile?.profileCompletedScore || 0}%</span>
-              </div>
-            </section>
 
             {/* Addresses */}
             <section className="profile-section-card">
@@ -333,43 +299,6 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </section>
 
-            {/* Emergency Contacts */}
-            <section className="profile-section-card">
-              <div className="section-header-row">
-                <h3 className="section-title">
-                  <Shield size={18} color="var(--primary)" />
-                  <span>Emergency Contacts</span>
-                </h3>
-                <button className="add-item-btn" onClick={() => setShowAddContact(!showAddContact)}>
-                  {showAddContact ? <X size={16} /> : <Plus size={16} />}
-                </button>
-              </div>
-
-              {showAddContact && (
-                <div className="add-form">
-                  <input placeholder="Contact name" value={newContact.contactName} onChange={e => setNewContact(p => ({ ...p, contactName: e.target.value }))} />
-                  <input placeholder="Relationship" value={newContact.relationship} onChange={e => setNewContact(p => ({ ...p, relationship: e.target.value }))} />
-                  <input placeholder="Phone number" value={newContact.phoneNumber} onChange={e => setNewContact(p => ({ ...p, phoneNumber: e.target.value }))} />
-                  <input placeholder="Email (optional)" value={newContact.email} onChange={e => setNewContact(p => ({ ...p, email: e.target.value }))} />
-                  <button className="save-btn" onClick={handleAddContact}><Check size={14} /> Add</button>
-                </div>
-              )}
-
-              <div className="items-list">
-                {localContacts.sort((a, b) => a.priority - b.priority).map(contact => (
-                  <div key={contact.id} className="detail-card">
-                    <div className="detail-card-header">
-                      <span className="contact-name">{contact.contactName}</span>
-                      {contact.primary && <span className="primary-badge">Primary</span>}
-                      <button className="delete-btn" onClick={() => handleDeleteContact(contact.id)}><Trash2 size={14} /></button>
-                    </div>
-                    <p className="detail-sub">{contact.relationship} • {contact.phoneNumber}</p>
-                    {contact.email && <p className="detail-sub">{contact.email}</p>}
-                  </div>
-                ))}
-                {localContacts.length === 0 && <p className="empty-text">No emergency contacts added</p>}
-              </div>
-            </section>
 
             {/* Skills */}
             <section className="profile-section-card">
@@ -433,13 +362,27 @@ export const ProfileScreen: React.FC = () => {
                 </div>
               </section>
             )}
+
+            {/* Profile Completion */}
+            <section className="profile-section-card">
+              <h3 className="section-title">
+                <TrendingUp size={18} color="var(--primary)" />
+                <span>Profile Completion</span>
+              </h3>
+              <div className="completion-bar-container">
+                <div className="completion-bar">
+                  <div className="completion-fill" style={{ width: `${profile?.profileCompletedScore || 0}%` }} />
+                </div>
+                <span className="completion-text">{profile?.profileCompletedScore || 0}%</span>
+              </div>
+            </section>
           </aside>
 
           {/* MAIN CONTENT - User's Feed */}
           <main className="profile-main-column">
             <div className="profile-feed-header">
-              <h2>My Posts</h2>
-              <span className="count-badge">{userFeedPosts.length} Posts</span>
+              <h2>My Syncs</h2>
+              <span className="count-badge">{userFeedPosts.length} Syncs</span>
             </div>
             <div className="profile-feed-list">
               {userFeedPosts.map(post => (
