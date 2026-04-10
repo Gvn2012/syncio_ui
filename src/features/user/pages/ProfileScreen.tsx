@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Layout } from '../../../components/Layout';
 import { 
-
   Mail, 
   Phone, 
   Calendar, 
@@ -16,7 +15,9 @@ import {
   Home,
   Briefcase,
   AlertTriangle,
-  User as UserIcon
+  User as UserIcon,
+  Camera,
+  Loader2
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
@@ -24,6 +25,9 @@ import { fetchUserDetail } from '../../../store/slices/userSlice';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { FeedItem } from '../../feed/components/FeedItem';
 import { demoFeedItems } from '../../feed/data';
+import { uploadService } from '../../../api/upload.service';
+import { UserService } from '../api/user.service';
+import { showSuccess, showError } from '../../../store/slices/uiSlice';
 import type { 
   UserAddressResponse, 
   UserSkillResponse 
@@ -32,19 +36,16 @@ import './ProfileScreen.css';
 
 export const ProfileScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { id, userDetail, userDetailLoading, userDetailError } = useSelector(
     (state: RootState) => state.user
   );
 
-  // Local CRUD state
+  const [isUploading, setIsUploading] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [bioValue, setBioValue] = useState('');
-
   const [localAddresses, setLocalAddresses] = useState<UserAddressResponse[]>([]);
-
   const [localSkills, setLocalSkills] = useState<UserSkillResponse[]>([]);
-
-  // New item forms
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newAddress, setNewAddress] = useState({ addressType: 'HOME', addressLine1: '', city: '', country: '', postalCode: '' });
@@ -63,6 +64,52 @@ export const ProfileScreen: React.FC = () => {
       setLocalSkills(userDetail.skills || []);
     }
   }, [userDetail]);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Request Presigned URL
+      const uploadParams = await uploadService.requestUploadUrl({
+        fileName: file.name,
+        fileContentType: file.type,
+        size: file.size
+      });
+
+      if (uploadParams.success) {
+        const { imageId, uploadUrl, headers } = uploadParams.data;
+
+        // 2. Initialize PENDING record in user_service
+        await UserService.updateProfilePicture(id, imageId);
+
+        // 3. Upload to GCS
+        await uploadService.uploadToGcs(
+          uploadUrl,
+          file,
+          headers['Content-Type'] || file.type,
+          headers
+        );
+
+        dispatch(showSuccess('Profile picture updated successfully. Finalizing metadata...'));
+        
+        // Short delay to allow GCS Pub/Sub -> Kafka to process
+        setTimeout(() => {
+          dispatch(fetchUserDetail(id));
+          setIsUploading(false);
+        }, 1500);
+      }
+    } catch (error: any) {
+      console.error('Failed to upload profile picture:', error);
+      dispatch(showError(error.message || 'Failed to update profile picture'));
+      setIsUploading(false);
+    }
+  };
 
   if (userDetailLoading) {
     return (
@@ -106,7 +153,6 @@ export const ProfileScreen: React.FC = () => {
 
   const displayName = `${user.firstName} ${user.lastName}`;
 
-  // Mock feed posts for this user
   const userFeedPosts = demoFeedItems.slice(0, 4).map(post => ({
     ...post,
     author: {
@@ -118,15 +164,12 @@ export const ProfileScreen: React.FC = () => {
     authorId: user.id,
   }));
 
-  // CRUD handlers
   const handleSaveBio = () => {
-    // TODO: Call API to update bio
     setEditingBio(false);
   };
 
   const handleDeleteAddress = (addrId: string) => {
     setLocalAddresses(prev => prev.filter(a => a.id !== addrId));
-    // TODO: Call API to delete address
   };
 
   const handleAddAddress = () => {
@@ -140,14 +183,10 @@ export const ProfileScreen: React.FC = () => {
     setLocalAddresses(prev => [...prev, newAddr]);
     setNewAddress({ addressType: 'HOME', addressLine1: '', city: '', country: '', postalCode: '' });
     setShowAddAddress(false);
-    // TODO: Call API to create address
   };
-
-
 
   const handleDeleteSkill = (skillId: string) => {
     setLocalSkills(prev => prev.filter(s => s.id !== skillId));
-    // TODO: Call API to delete skill
   };
 
   const handleAddSkill = () => {
@@ -162,18 +201,36 @@ export const ProfileScreen: React.FC = () => {
     setLocalSkills(prev => [...prev, newS]);
     setNewSkill({ skillName: '', proficiencyLevel: 'BEGINNER', yearsOfExperience: 0 });
     setShowAddSkill(false);
-    // TODO: Call API to create skill
   };
 
   return (
     <Layout>
       <div className="profile-page">
-        {/* Profile Header Banner */}
         <header className="profile-header-section">
           <div className="profile-header-gradient" />
           <div className="profile-header-content">
             <div className="profile-avatar-container">
-              <UserAvatar className="profile-avatar-large" size={200} />
+              <div 
+                className={`profile-avatar-wrapper ${isUploading ? 'uploading' : ''}`}
+                onClick={handleAvatarClick}
+                data-tooltip="Click to change profile picture"
+              >
+                <UserAvatar className="profile-avatar-large" size={200} />
+                <div className="avatar-overlay">
+                  {isUploading ? (
+                    <Loader2 className="animate-spin" size={32} color="#fff" />
+                  ) : (
+                    <Camera size={32} color="#fff" />
+                  )}
+                </div>
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+              />
               <span className={`status-dot-large ${user.active ? 'online' : 'offline'}`} />
             </div>
             <div className="profile-info-main">
@@ -198,7 +255,6 @@ export const ProfileScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bio - editable */}
               <div className="profile-bio-section">
                 {editingBio ? (
                   <div className="inline-edit-form">
@@ -222,7 +278,6 @@ export const ProfileScreen: React.FC = () => {
                 )}
               </div>
 
-              {/* Quick contact info */}
               <div className="profile-quick-meta">
                 {primaryEmail && (
                   <div className="meta-chip">
@@ -251,12 +306,8 @@ export const ProfileScreen: React.FC = () => {
           </div>
         </header>
 
-        {/* Two-column layout: Sidebar + Feed */}
         <div className="profile-content-grid">
-          {/* LEFT SIDEBAR - User details with CRUD */}
           <aside className="profile-sidebar-column">
-
-            {/* Addresses */}
             <section className="profile-section-card">
               <div className="section-header-row">
                 <h3 className="section-title">
@@ -299,8 +350,6 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </section>
 
-
-            {/* Skills */}
             <section className="profile-section-card">
               <div className="section-header-row">
                 <h3 className="section-title">
@@ -341,7 +390,6 @@ export const ProfileScreen: React.FC = () => {
               </div>
             </section>
 
-            {/* Employments */}
             {userDetail.employments.length > 0 && (
               <section className="profile-section-card">
                 <h3 className="section-title">
@@ -363,7 +411,6 @@ export const ProfileScreen: React.FC = () => {
               </section>
             )}
 
-            {/* Profile Completion */}
             <section className="profile-section-card">
               <h3 className="section-title">
                 <TrendingUp size={18} color="var(--primary)" />
@@ -378,7 +425,6 @@ export const ProfileScreen: React.FC = () => {
             </section>
           </aside>
 
-          {/* MAIN CONTENT - User's Feed */}
           <main className="profile-main-column">
             <div className="profile-feed-header">
               <h2>My Syncs</h2>

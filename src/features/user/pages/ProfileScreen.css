@@ -90,13 +90,59 @@
 }
 
 .profile-avatar-large {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2), 0 0 0 4px rgba(37, 150, 190, 0.1);
+  background: var(--bg-sidebar);
+}
+
+.profile-avatar-wrapper {
+  position: relative;
   width: 140px;
   height: 140px;
-  border-radius: var(--radius-lg);
-  object-fit: cover;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(2px);
+  z-index: 2;
+}
+
+.profile-avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.profile-avatar-wrapper.uploading {
+  pointer-events: none;
+}
+
+.profile-avatar-wrapper.uploading .avatar-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.profile-avatar-wrapper:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px rgba(37, 150, 190, 0.2);
+}
+
 
 .status-dot-large {
   position: absolute;

@@ -50,5 +50,14 @@ export const UserService = {
 
     const response = await api.get<APIResource<GetUserListResponse>>(`users?${query.toString()}`);
     return response.data;
+  },
+
+  /**
+   * Update the user's profile picture using an image ID.
+   * URI: PUT /api/v1/users/{uid}/profile-picture
+   */
+  updateProfilePicture: async (userId: string, imageId: string): Promise<APIResource<void>> => {
+    const response = await api.put<APIResource<void>>(`users/${userId}/profile-picture`, { imageId });
+    return response.data;
   }
 };
