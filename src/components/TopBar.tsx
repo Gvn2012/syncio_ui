@@ -10,16 +10,23 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '../store';
-import { logout } from '../store/slices/userSlice';
+import type { RootState, AppDispatch } from '../store';
+import { logout, fetchUserDetail } from '../store/slices/userSlice';
+import { UserAvatar } from './UserAvatar';
 import './TopBar.css';
 
 export const TopBar: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { username, role } = useSelector((state: RootState) => state.user);
+  const { id, userDetail } = useSelector((state: RootState) => state.user);
+
+  useEffect(() => {
+    if (id && !userDetail) {
+      dispatch(fetchUserDetail(id));
+    }
+  }, [id, userDetail, dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,6 +47,12 @@ export const TopBar: React.FC = () => {
     dispatch(logout());
     navigate('/login');
   };
+
+  const displayName = userDetail
+    ? `${userDetail.userResponse.firstName} ${userDetail.userResponse.lastName}`
+    : 'User';
+
+  const userRole = userDetail?.employments?.[0]?.jobTitle || 'Member';
 
   return (
     <header className="topbar">
@@ -72,15 +85,11 @@ export const TopBar: React.FC = () => {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
           >
             <div className="avatar-wrapper">
-              <img 
-                src="https://ui-avatars.com/api/?name=User&background=2596be&color=fff" 
-                alt="User Profile" 
-                className="avatar" 
-              />
+              <UserAvatar className="avatar" size={40} />
             </div>
             <div className="profile-info desktop-only">
-              <span className="username">{username || 'Curator'}</span>
-              <span className="user-role">{role || 'Agent'}</span>
+              <span className="username">{displayName}</span>
+              <span className="user-role">{userRole}</span>
             </div>
             <ChevronDown size={14} className={`chevron-icon ${isProfileOpen ? 'rotate' : ''}`} />
           </div>
@@ -88,8 +97,8 @@ export const TopBar: React.FC = () => {
           {isProfileOpen && (
             <div className="profile-dropdown-menu">
               <div className="dropdown-header mobile-only">
-                <span className="header-username">{username || 'Curator'}</span>
-                <span className="header-role">{role || 'Agent'}</span>
+                <span className="header-username">{displayName}</span>
+                <span className="header-role">{userRole}</span>
               </div>
               <div className="dropdown-divider mobile-only"></div>
               

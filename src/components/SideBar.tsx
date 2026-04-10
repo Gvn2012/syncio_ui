@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -12,7 +13,10 @@ import {
   Building2,
   User
 } from 'lucide-react';
-import { currentUser } from '../features/user/data';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
+import { fetchUserDetail } from '../store/slices/userSlice';
+import { UserAvatar } from './UserAvatar';
 import './SideBar.css';
 
 const navItems = [
@@ -26,7 +30,22 @@ const navItems = [
 
 export const SideBar: React.FC = () => {
   const location = useLocation();
-  const user = currentUser;
+  const dispatch = useDispatch<AppDispatch>();
+  const { id, userDetail } = useSelector((state: RootState) => state.user);
+
+  // Fetch user detail if not already loaded
+  useEffect(() => {
+    if (id && !userDetail) {
+      dispatch(fetchUserDetail(id));
+    }
+  }, [id, userDetail, dispatch]);
+
+  // Derive display values from userDetail
+  const displayName = userDetail
+    ? `${userDetail.userResponse.firstName} ${userDetail.userResponse.lastName}`
+    : 'User';
+  
+  const jobTitle = userDetail?.employments?.[0]?.jobTitle || 'Member';
 
   return (
     <aside className="sidebar">
@@ -73,10 +92,10 @@ export const SideBar: React.FC = () => {
       <div className="sidebar-footer">
         <div className="user-profile-mini">
           <Link to="/profile" className="user-info-link">
-            <img src={user.profile?.avatarUrl} alt={user.firstName} className="user-avatar-small" />
+            <UserAvatar className="user-avatar-small" size={32} />
             <div className="user-name-role">
-              <span className="user-name">{user.firstName} {user.lastName}</span>
-              <span className="user-role">{user.employments[0]?.jobTitle}</span>
+              <span className="user-name">{displayName}</span>
+              <span className="user-role">{jobTitle}</span>
             </div>
           </Link>
         </div>
@@ -105,4 +124,3 @@ export const SideBar: React.FC = () => {
     </aside>
   );
 };
-

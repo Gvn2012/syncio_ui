@@ -1,15 +1,18 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 export type ThemeMode = 'light' | 'dark';
+export type AlertType = 'error' | 'success' | 'info' | 'warning';
 
 interface UIState {
   theme: ThemeMode;
   language: 'en' | 'vi' | 'zh';
   isSidebarOpen: boolean;
   activeLightboxImage: string | null;
-  globalError: {
+  alert: {
     message: string | null;
+    type: AlertType;
     isVisible: boolean;
+    title?: string;
   };
 }
 
@@ -18,8 +21,9 @@ const initialState: UIState = {
   language: 'en',
   isSidebarOpen: true,
   activeLightboxImage: null,
-  globalError: {
+  alert: {
     message: null,
+    type: 'error',
     isVisible: false,
   },
 };
@@ -44,11 +48,30 @@ const uiSlice = createSlice({
       state.activeLightboxImage = action.payload;
     },
     showError: (state, action: PayloadAction<string>) => {
-      state.globalError.message = action.payload;
-      state.globalError.isVisible = true;
+      if (!state.alert) state.alert = { ...initialState.alert };
+      state.alert.message = action.payload;
+      state.alert.type = 'error';
+      state.alert.title = 'AUTHENTICATION ERROR';
+      state.alert.isVisible = true;
     },
-    hideError: (state) => {
-      state.globalError.isVisible = false;
+    showSuccess: (state, action: PayloadAction<string>) => {
+      if (!state.alert) state.alert = { ...initialState.alert };
+      state.alert.message = action.payload;
+      state.alert.type = 'success';
+      state.alert.title = 'SUCCESS';
+      state.alert.isVisible = true;
+    },
+    showAlert: (state, action: PayloadAction<{ message: string; type: AlertType; title?: string }>) => {
+      if (!state.alert) state.alert = { ...initialState.alert };
+      state.alert.message = action.payload.message;
+      state.alert.type = action.payload.type;
+      state.alert.title = action.payload.title || action.payload.type.toUpperCase();
+      state.alert.isVisible = true;
+    },
+    hideAlert: (state) => {
+      if (state.alert) {
+        state.alert.isVisible = false;
+      }
     },
   },
 });
@@ -60,6 +83,11 @@ export const {
   toggleSidebar, 
   setLightboxImage,
   showError,
-  hideError
+  showSuccess,
+  showAlert,
+  hideAlert
 } = uiSlice.actions;
+
+// Keep exports for backward compatibility if needed, though they'll be deprecated
+export const hideError = hideAlert;
 export default uiSlice.reducer;

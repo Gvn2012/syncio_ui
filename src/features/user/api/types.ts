@@ -1,4 +1,4 @@
-import type { User, UserProfile } from '../types';
+import type { User, UserDetailResponse } from '../types';
 
 export interface GetUserProfileRequest {
   id: string;
@@ -29,3 +29,6 @@ export interface GetUserListResponse {
   users: User[];
   total: number;
 }
+
+/** Response type for GET /api/v1/users?id=userId */
+export type GetUserDetailResponse = UserDetailResponse;

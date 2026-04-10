@@ -22,7 +22,7 @@ import {
 import { authService } from '../api/auth.service';
 import { OrgService } from '../../org/api/org.service';
 import { uploadService } from '../../../api/upload.service';
-import { showError } from '../../../store/slices/uiSlice';
+import { showError, showSuccess } from '../../../store/slices/uiSlice';
 import { type RegisterRequest as RegisterData } from '../api/types';
 import { type AddressData, type EmergencyContactData } from '../../../api/types/common-types';
 import './Register.css';
@@ -209,6 +209,17 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (formData.dateBirth) {
+      const birthDate = new Date(formData.dateBirth);
+      const thirteenYearsAgo = new Date();
+      thirteenYearsAgo.setFullYear(thirteenYearsAgo.getFullYear() - 13);
+      
+      if (birthDate > thirteenYearsAgo) {
+        dispatch(showError('You must be at least 13 years old to register.'));
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       const availabilityResponse = await authService.checkAvailability(formData.email, formData.username);
@@ -377,6 +388,8 @@ export const RegisterPage: React.FC = () => {
       }
 
       const registerPayload: RegisterData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         username: formData.username,
         password: formData.password,
         email: formData.email,
@@ -406,7 +419,8 @@ export const RegisterPage: React.FC = () => {
             gcsParams.headers['Content-Type'] || fileToUpload.type,
             gcsParams.headers
           ).catch((err: any) => console.error('Background GCS upload failed:', err));
-          navigate("/login")
+          dispatch(showSuccess("Registration successful"));
+          navigate("/login");
         }
       } else {
         dispatch(showError(registerResponse.error?.message || 'Registration failed.'));
@@ -682,6 +696,7 @@ export const RegisterPage: React.FC = () => {
                         type="date" 
                         value={formData.dateBirth}
                         onChange={handleInputChange}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
                         required 
                       />
                     </div>

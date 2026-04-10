@@ -43,6 +43,8 @@ export interface RegisterRequest {
   username: string;
   password: string;
   email: string;
+  firstName: string;
+  lastName: string;
   emailVerificationId: string;
   phoneCode: string;
   phoneNumber: string;

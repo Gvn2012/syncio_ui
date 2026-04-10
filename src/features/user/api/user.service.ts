@@ -6,10 +6,20 @@ import type {
   UpdateUserProfileRequest, 
   UpdateUserProfileResponse,
   GetUserListRequest,
-  GetUserListResponse
+  GetUserListResponse,
+  GetUserDetailResponse
 } from './types';
 
 export const UserService = {
+  /**
+   * Fetch full user detail by ID.
+   * URI: GET http://syncio.site/api/v1/users?id={userId}
+   */
+  getUserDetail: async (userId: string): Promise<APIResource<GetUserDetailResponse>> => {
+    const response = await api.get<APIResource<GetUserDetailResponse>>(`users?id=${userId}`);
+    return response.data;
+  },
+
   /**
    * Fetch a user profile by ID.
    * URI: GET http://syncio.site/api/v1/users/{id}

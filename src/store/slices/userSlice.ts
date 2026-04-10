@@ -1,4 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import type { UserDetailResponse } from '../../features/user/types';
+import { UserService } from '../../features/user/api/user.service';
 
 
 interface UserState {
@@ -8,6 +10,10 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   orgId: string | null;
+  // User detail from API
+  userDetail: UserDetailResponse | null;
+  userDetailLoading: boolean;
+  userDetailError: string | null;
 }
 
 const initialState: UserState = {
@@ -16,8 +22,31 @@ const initialState: UserState = {
   role: [],
   token: null,
   isAuthenticated: false,
-  orgId: null
+  orgId: null,
+  userDetail: null,
+  userDetailLoading: false,
+  userDetailError: null,
 };
+
+/**
+ * Async thunk to fetch user detail from GET /api/v1/users?id=userId.
+ * Reads the userId from the Redux store's user.id field.
+ */
+export const fetchUserDetail = createAsyncThunk(
+  'user/fetchUserDetail',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await UserService.getUserDetail(userId);
+      if (response.success) {
+        return response.data;
+      }
+      return rejectWithValue(response.message || 'Failed to fetch user detail');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Network error';
+      return rejectWithValue(message);
+    }
+  }
+);
 
 const userSlice = createSlice({
   name: 'user',
@@ -38,15 +67,38 @@ const userSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       state.orgId = null;
+      state.userDetail = null;
+      state.userDetailLoading = false;
+      state.userDetailError = null;
     },
     setRole: (state, action: PayloadAction<String[]>) => {
       state.role = action.payload;
     },
     setOrgId: (state, action: PayloadAction<string>) => {
       state.orgId = action.payload;
-    }
+    },
+    clearUserDetail: (state) => {
+      state.userDetail = null;
+      state.userDetailLoading = false;
+      state.userDetailError = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUserDetail.pending, (state) => {
+        state.userDetailLoading = true;
+        state.userDetailError = null;
+      })
+      .addCase(fetchUserDetail.fulfilled, (state, action) => {
+        state.userDetailLoading = false;
+        state.userDetail = action.payload;
+      })
+      .addCase(fetchUserDetail.rejected, (state, action) => {
+        state.userDetailLoading = false;
+        state.userDetailError = action.payload as string;
+      });
   },
 });
 
-export const { setUser, logout, setRole } = userSlice.actions;
+export const { setUser, logout, setRole, setOrgId, clearUserDetail } = userSlice.actions;
 export default userSlice.reducer;
