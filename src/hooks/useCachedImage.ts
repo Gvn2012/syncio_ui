@@ -44,7 +44,7 @@ export const useCachedImage = (src: string | undefined) => {
       } catch (err) {
         console.error('Image caching failed:', err);
         setError(err as Error);
-        setCachedSrc(src); 
+        setCachedSrc(src);
       } finally {
         setIsLoading(false);
       }

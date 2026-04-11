@@ -75,7 +75,6 @@ export const ProfileScreen: React.FC = () => {
 
     setIsUploading(true);
     try {
-      // 1. Request Presigned URL
       const uploadParams = await uploadService.requestUploadUrl({
         fileName: file.name,
         fileContentType: file.type,
@@ -85,10 +84,8 @@ export const ProfileScreen: React.FC = () => {
       if (uploadParams.success) {
         const { imageId, uploadUrl, headers } = uploadParams.data;
 
-        // 2. Initialize PENDING record in user_service
         await UserService.updateProfilePicture(id, imageId);
 
-        // 3. Upload to GCS
         await uploadService.uploadToGcs(
           uploadUrl,
           file,
@@ -97,8 +94,7 @@ export const ProfileScreen: React.FC = () => {
         );
 
         dispatch(showSuccess('Profile picture updated successfully. Finalizing metadata...'));
-        
-        // Short delay to allow GCS Pub/Sub -> Kafka to process
+
         setTimeout(() => {
           dispatch(fetchUserDetail(id));
           setIsUploading(false);
