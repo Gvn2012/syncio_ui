@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { Layout } from '../../../components/Layout';
 import { 
   Mail, 
@@ -27,19 +28,35 @@ import { FeedItem } from '../../feed/components/FeedItem';
 import { demoFeedItems } from '../../feed/data';
 import { uploadService } from '../../../api/upload.service';
 import { UserService } from '../api/user.service';
+import { RelationshipActions } from '../components/RelationshipActions';
+import { RelationshipService } from '../api/relationship.service';
 import { showSuccess, showError } from '../../../store/slices/uiSlice';
 import type { 
   UserAddressResponse, 
-  UserSkillResponse 
+  UserSkillResponse,
+  UserDetailResponse
 } from '../types';
 import './ProfileScreen.css';
 
 export const ProfileScreen: React.FC = () => {
+  const { userId } = useParams<{ userId?: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { id, userDetail, userDetailLoading, userDetailError } = useSelector(
+  
+  const { id: currentUserId, userDetail: currentUserDetail, userDetailLoading: currentUserLoading } = useSelector(
     (state: RootState) => state.user
   );
+
+  const [externalUserDetail, setExternalUserDetail] = useState<UserDetailResponse | null>(null);
+  const [externalLoading, setExternalLoading] = useState(false);
+  const [externalError, setExternalError] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  const isOwnProfile = !userId || userId === currentUserId;
+  const effectiveUserId = isOwnProfile ? currentUserId : userId;
+  const userDetail = isOwnProfile ? currentUserDetail : externalUserDetail;
+  const isLoading = isOwnProfile ? currentUserLoading : externalLoading;
+  const hasError = isOwnProfile ? false : !!externalError; // Adjust as needed
 
   const [isUploading, setIsUploading] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
@@ -52,10 +69,43 @@ export const ProfileScreen: React.FC = () => {
   const [newSkill, setNewSkill] = useState({ skillName: '', proficiencyLevel: 'BEGINNER', yearsOfExperience: 0 });
 
   useEffect(() => {
-    if (id && !userDetail) {
-      dispatch(fetchUserDetail(id));
+    if (isOwnProfile) {
+      if (currentUserId && !currentUserDetail) {
+        dispatch(fetchUserDetail(currentUserId));
+      }
+    } else if (userId) {
+      fetchExternalUser(userId);
+      checkBlockStatus(userId);
     }
-  }, [id, userDetail, dispatch]);
+  }, [userId, isOwnProfile, currentUserId, currentUserDetail, dispatch]);
+
+  const fetchExternalUser = async (uid: string) => {
+    try {
+      setExternalLoading(true);
+      setExternalError(null);
+      const res = await UserService.getUserDetail(uid);
+      if (res.success) {
+        setExternalUserDetail(res.data);
+      } else {
+        setExternalError(res.message || 'Failed to fetch user profile');
+      }
+    } catch (err: any) {
+      setExternalError(err.message || 'Error occurred');
+    } finally {
+      setExternalLoading(false);
+    }
+  };
+
+  const checkBlockStatus = async (uid: string) => {
+    try {
+      const status = await RelationshipService.getStatus(uid);
+      if (status.isBlocking || status.isBlockedBy) {
+        setIsBlocked(true);
+      }
+    } catch (e) {
+      console.error('Failed to check block status', e);
+    }
+  };
 
   useEffect(() => {
     if (userDetail) {
@@ -71,7 +121,7 @@ export const ProfileScreen: React.FC = () => {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !id) return;
+    if (!file || !currentUserId) return;
 
     setIsUploading(true);
     try {
@@ -84,7 +134,7 @@ export const ProfileScreen: React.FC = () => {
       if (uploadParams.success) {
         const { imageId, uploadUrl, headers } = uploadParams.data;
 
-        await UserService.updateProfilePicture(id, imageId);
+        await UserService.updateProfilePicture(currentUserId, imageId);
 
         await uploadService.uploadToGcs(
           uploadUrl,
@@ -96,7 +146,7 @@ export const ProfileScreen: React.FC = () => {
         dispatch(showSuccess('Profile picture updated successfully. Finalizing metadata...'));
 
         setTimeout(() => {
-          dispatch(fetchUserDetail(id));
+          dispatch(fetchUserDetail(currentUserId));
           setIsUploading(false);
         }, 1500);
       }
@@ -107,7 +157,7 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
-  if (userDetailLoading) {
+  if (isLoading) {
     return (
       <Layout>
         <div className="profile-page">
@@ -120,15 +170,30 @@ export const ProfileScreen: React.FC = () => {
     );
   }
 
-  if (userDetailError || !userDetail) {
+  if (isBlocked) {
+    return (
+      <Layout>
+        <div className="profile-page">
+          <div className="profile-error">
+            <AlertTriangle size={48} color="var(--error)" />
+            <h3>Profile Restricted</h3>
+            <p>You cannot view this profile because one of you has blocked the other.</p>
+            <RelationshipActions targetId={userId!} />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (hasError || !userDetail) {
     return (
       <Layout>
         <div className="profile-page">
           <div className="profile-error">
             <AlertTriangle size={48} color="var(--error)" />
             <h3>Failed to load profile</h3>
-            <p>{userDetailError || 'User data not available'}</p>
-            <button className="retry-btn" onClick={() => id && dispatch(fetchUserDetail(id))}>
+            <p>{externalError || 'User data not available'}</p>
+            <button className="retry-btn" onClick={() => userId && fetchExternalUser(userId)}>
               Retry
             </button>
           </div>
@@ -207,18 +272,20 @@ export const ProfileScreen: React.FC = () => {
           <div className="profile-header-content">
             <div className="profile-avatar-container">
               <div 
-                className={`profile-avatar-wrapper ${isUploading ? 'uploading' : ''}`}
-                onClick={handleAvatarClick}
-                data-tooltip="Click to change profile picture"
+                className={`profile-avatar-wrapper ${isUploading ? 'uploading' : ''} ${!isOwnProfile ? 'readonly' : ''}`}
+                onClick={isOwnProfile ? handleAvatarClick : undefined}
+                data-tooltip={isOwnProfile ? "Click to change profile picture" : ""}
               >
-                <UserAvatar className="profile-avatar-large" size={200} />
-                <div className="avatar-overlay">
-                  {isUploading ? (
-                    <Loader2 className="animate-spin" size={32} color="#fff" />
-                  ) : (
-                    <Camera size={32} color="#fff" />
-                  )}
-                </div>
+                <UserAvatar className="profile-avatar-large" size={200} userId={effectiveUserId || undefined} showLink={false} />
+                {isOwnProfile && (
+                  <div className="avatar-overlay">
+                    {isUploading ? (
+                      <Loader2 className="animate-spin" size={32} color="#fff" />
+                    ) : (
+                      <Camera size={32} color="#fff" />
+                    )}
+                  </div>
+                )}
               </div>
               <input 
                 type="file" 
@@ -235,6 +302,11 @@ export const ProfileScreen: React.FC = () => {
                   <h1>{displayName}</h1>
                   <span className="profile-username">@{user.username}</span>
                 </div>
+                {!isOwnProfile && userId && (
+                  <div className="profile-actions-area">
+                    <RelationshipActions targetId={userId} />
+                  </div>
+                )}
                 <div className="profile-quick-stats">
                   <div className="quick-stat">
                     <span className="value">{localSkills.length}</span>
@@ -268,8 +340,10 @@ export const ProfileScreen: React.FC = () => {
                   </div>
                 ) : (
                   <div className="bio-display">
-                    <p className="profile-bio">{bioValue || 'No bio yet. Click edit to add one.'}</p>
-                    <button className="edit-inline-btn" onClick={() => setEditingBio(true)}><Edit3 size={14} /></button>
+                    <p className="profile-bio">{bioValue || (isOwnProfile ? 'No bio yet. Click edit to add one.' : 'No bio available.')}</p>
+                    {isOwnProfile && (
+                      <button className="edit-inline-btn" onClick={() => setEditingBio(true)}><Edit3 size={14} /></button>
+                    )}
                   </div>
                 )}
               </div>
@@ -290,7 +364,7 @@ export const ProfileScreen: React.FC = () => {
                 {profile?.dateOfBirth && (
                   <div className="meta-chip">
                     <Calendar size={14} />
-                    <span>{profile.dateOfBirth}</span>
+                    <span>{profile.dateOfBirth || ''}</span>
                   </div>
                 )}
                 <div className="meta-chip">
@@ -310,22 +384,24 @@ export const ProfileScreen: React.FC = () => {
                   <Home size={18} color="var(--primary)" />
                   <span>Addresses</span>
                 </h3>
-                <button className="add-item-btn" onClick={() => setShowAddAddress(!showAddAddress)}>
-                  {showAddAddress ? <X size={16} /> : <Plus size={16} />}
-                </button>
+                {isOwnProfile && (
+                  <button className="add-item-btn" onClick={() => setShowAddAddress(!showAddAddress)}>
+                    {showAddAddress ? <X size={16} /> : <Plus size={16} />}
+                  </button>
+                )}
               </div>
 
               {showAddAddress && (
                 <div className="add-form">
-                  <select value={newAddress.addressType} onChange={e => setNewAddress(p => ({ ...p, addressType: e.target.value }))}>
-                    <option value="HOME">Home</option>
-                    <option value="WORK">Work</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                  <input placeholder="Address line 1" value={newAddress.addressLine1} onChange={e => setNewAddress(p => ({ ...p, addressLine1: e.target.value }))} />
-                  <input placeholder="City" value={newAddress.city} onChange={e => setNewAddress(p => ({ ...p, city: e.target.value }))} />
-                  <input placeholder="Country" value={newAddress.country} onChange={e => setNewAddress(p => ({ ...p, country: e.target.value }))} />
-                  <input placeholder="Postal code" value={newAddress.postalCode} onChange={e => setNewAddress(p => ({ ...p, postalCode: e.target.value }))} />
+              <select value={newAddress.addressType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewAddress(p => ({ ...p, addressType: e.target.value }))}>
+                <option value="HOME">Home</option>
+                <option value="WORK">Work</option>
+                <option value="OTHER">Other</option>
+              </select>
+              <input placeholder="Address line 1" value={newAddress.addressLine1} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAddress(p => ({ ...p, addressLine1: e.target.value }))} />
+              <input placeholder="City" value={newAddress.city} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAddress(p => ({ ...p, city: e.target.value }))} />
+              <input placeholder="Country" value={newAddress.country} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAddress(p => ({ ...p, country: e.target.value }))} />
+              <input placeholder="Postal code" value={newAddress.postalCode} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAddress(p => ({ ...p, postalCode: e.target.value }))} />
                   <button className="save-btn" onClick={handleAddAddress}><Check size={14} /> Add</button>
                 </div>
               )}
@@ -336,7 +412,7 @@ export const ProfileScreen: React.FC = () => {
                     <div className="detail-card-header">
                       <span className={`type-badge ${addr.addressType.toLowerCase()}`}>{addr.addressType}</span>
                       {addr.primary && <span className="primary-badge">Primary</span>}
-                      <button className="delete-btn" onClick={() => handleDeleteAddress(addr.id)}><Trash2 size={14} /></button>
+                      {isOwnProfile && <button className="delete-btn" onClick={() => handleDeleteAddress(addr.id)}><Trash2 size={14} /></button>}
                     </div>
                     <p className="detail-text">{addr.addressLine1}</p>
                     <p className="detail-sub">{addr.city}, {addr.country} {addr.postalCode}</p>
@@ -352,9 +428,11 @@ export const ProfileScreen: React.FC = () => {
                   <Cpu size={18} color="var(--primary)" />
                   <span>Skills</span>
                 </h3>
-                <button className="add-item-btn" onClick={() => setShowAddSkill(!showAddSkill)}>
-                  {showAddSkill ? <X size={16} /> : <Plus size={16} />}
-                </button>
+                {isOwnProfile && (
+                  <button className="add-item-btn" onClick={() => setShowAddSkill(!showAddSkill)}>
+                    {showAddSkill ? <X size={16} /> : <Plus size={16} />}
+                  </button>
+                )}
               </div>
 
               {showAddSkill && (
@@ -393,7 +471,7 @@ export const ProfileScreen: React.FC = () => {
                   <span>Employment</span>
                 </h3>
                 <div className="items-list">
-                  {userDetail.employments.map(emp => (
+                  {userDetail.employments.map((emp: any) => (
                     <div key={emp.id} className="detail-card">
                       <h4 className="detail-title">{emp.jobTitle}</h4>
                       <p className="detail-sub">{emp.organizationName} • {emp.departmentName}</p>
@@ -423,7 +501,7 @@ export const ProfileScreen: React.FC = () => {
 
           <main className="profile-main-column">
             <div className="profile-feed-header">
-              <h2>My Syncs</h2>
+              <h2>{isOwnProfile ? 'My Syncs' : `${user.firstName}'s Syncs`}</h2>
               <span className="count-badge">{userFeedPosts.length} Syncs</span>
             </div>
             <div className="profile-feed-list">

@@ -12,6 +12,7 @@ import {
 import { PostCategory, TaskStatus } from '../types';
 import type { Post as PostType } from '../types';
 import { useFormatDate } from '../../../common/hooks/useFormatDate';
+import { UserAvatar } from '../../../components/UserAvatar';
 import './FeedItem.css';
 
 interface FeedItemProps {
@@ -45,7 +46,7 @@ export const FeedItem: React.FC<FeedItemProps> = ({ post }) => {
 
       <header className="feed-item-header">
         <div className="author-info">
-          <img src={author.avatar} alt={author.name} className="author-avatar" />
+          <UserAvatar userId={post.authorId} className="author-avatar" size={40} />
           <div className="author-details">
             <h4>{author.name}</h4>
             <p>{author.role || 'Member'}</p>

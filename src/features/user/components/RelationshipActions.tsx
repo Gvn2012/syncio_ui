@@ -1,0 +1,253 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  UserPlus, 
+  UserMinus, 
+  UserCheck, 
+  UserX, 
+  Slash, 
+  ChevronDown,
+  Clock,
+  Check,
+  X,
+  ShieldOff,
+  User
+} from 'lucide-react';
+import { RelationshipService, type RelationshipStatusResponse } from '../api/relationship.service';
+import { showError, showSuccess } from '../../../store/slices/uiSlice';
+import { useDispatch } from 'react-redux';
+import { useRef } from 'react';
+import './RelationshipActions.css';
+
+interface RelationshipActionsProps {
+  targetId: string;
+}
+
+export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ targetId }) => {
+  const dispatch = useDispatch();
+  const [status, setStatus] = useState<RelationshipStatusResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showDefaultDropdown, setShowDefaultDropdown] = useState(false);
+  const [showFollowingDropdown, setShowFollowingDropdown] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const fetchStatus = async () => {
+    try {
+      setLoading(true);
+      const data = await RelationshipService.getStatus(targetId);
+      setStatus(data);
+    } catch (error) {
+      console.error('Failed to fetch relationship status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, [targetId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+        setShowDefaultDropdown(false);
+        setShowFollowingDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleAction = async (action: () => Promise<any>, successMsg: string) => {
+    try {
+      setActionLoading(true);
+      const res = await action();
+      if (res.success) {
+        dispatch(showSuccess(successMsg));
+        await fetchStatus();
+      } else {
+        dispatch(showError(res.message || 'Action failed'));
+      }
+    } catch (error: any) {
+      dispatch(showError(error.message || 'Action failed'));
+    } finally {
+      setActionLoading(false);
+      setShowDropdown(false);
+      setShowDefaultDropdown(false);
+      setShowFollowingDropdown(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="relationship-actions-skeleton" />;
+  }
+
+  if (!status) return null;
+
+  if (!status) return null;
+
+  return (
+    <div className="relationship-actions-container" ref={containerRef}>
+      {/* 1. Blocked States */}
+      {status.isBlocking && (
+        <button 
+          className="rel-btn unblock-btn" 
+          disabled={actionLoading}
+          onClick={() => handleAction(() => RelationshipService.unblock(targetId), 'User unblocked')}
+        >
+          <ShieldOff size={16} />
+          <span>Unblock</span>
+        </button>
+      )}
+
+      {status.isBlockedBy && !status.isBlocking && (
+        <div className="rel-status-badge blocked">
+          <Slash size={16} />
+          <span>You are blocked by this user</span>
+        </div>
+      )}
+
+      {/* 2. Friend Request Received */}
+      {!status.isBlocking && !status.isBlockedBy && status.friendRequestStatus === 'PENDING_RECEIVED' && (
+        <div className="rel-action-group">
+          <button 
+            className="rel-btn accept-btn" 
+            disabled={actionLoading || !status.friendRequestId}
+            onClick={() => status.friendRequestId && handleAction(() => RelationshipService.acceptFriendRequest(status.friendRequestId!), 'Friend request accepted')}
+          >
+            <Check size={16} />
+            <span>Accept</span>
+          </button>
+          <button 
+            className="rel-btn decline-btn" 
+            disabled={actionLoading || !status.friendRequestId}
+            onClick={() => status.friendRequestId && handleAction(() => RelationshipService.declineFriendRequest(status.friendRequestId!), 'Friend request declined')}
+          >
+            <X size={16} />
+            <span>Decline</span>
+          </button>
+        </div>
+      )}
+
+      {/* 3. Friend Request Sent */}
+      {!status.isBlocking && !status.isBlockedBy && status.friendRequestStatus === 'PENDING_SENT' && (
+        <button className="rel-btn pending-btn" disabled>
+          <Clock size={16} />
+          <span>Request Sent</span>
+        </button>
+      )}
+
+      {/* 4. Friends */}
+      {!status.isBlocking && !status.isBlockedBy && status.isFriend && (
+        <div className="rel-dropdown-container">
+          <button 
+            className="rel-btn friend-btn" 
+            onClick={() => setShowDropdown(!showDropdown)}
+          >
+            <UserCheck size={16} />
+            <span>Friends</span>
+            <ChevronDown size={14} />
+          </button>
+          
+          {showDropdown && (
+            <div className="rel-dropdown-menu">
+              <button onClick={() => handleAction(() => RelationshipService.unfriend(targetId), 'Friendship removed')}>
+                <UserMinus size={14} />
+                <span>Unfriend</span>
+              </button>
+              <button onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}>
+                <UserX size={14} />
+                <span>Unfollow</span>
+              </button>
+              <button className="danger" onClick={() => handleAction(() => RelationshipService.block(targetId), 'User blocked')}>
+                <Slash size={14} />
+                <span>Block User</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. Following but not Friends */}
+      {!status.isBlocking && !status.isBlockedBy && !status.isFriend && status.isFollowing && (
+        <div className="rel-action-group">
+          <div className="rel-btn-group">
+            <button className="rel-btn following-btn group-main" disabled>
+              <UserCheck size={16} />
+              <span>Following</span>
+            </button>
+            <button 
+              className="rel-btn following-btn group-trigger"
+              disabled={actionLoading}
+              onClick={() => setShowFollowingDropdown(!showFollowingDropdown)}
+            >
+              <ChevronDown size={14} />
+            </button>
+
+            {showFollowingDropdown && (
+              <div className="rel-dropdown-menu">
+                <button onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}>
+                  <UserX size={14} />
+                  <span>Unfollow</span>
+                </button>
+                <button className="danger" onClick={() => handleAction(() => RelationshipService.block(targetId), 'User blocked')}>
+                  <Slash size={14} />
+                  <span>Block User</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button 
+            className="rel-btn add-friend-secondary" 
+            disabled={actionLoading}
+            onClick={() => handleAction(() => RelationshipService.sendFriendRequest(targetId), 'Friend request sent')}
+          >
+            <UserPlus size={16} />
+            <span>Add Friend</span>
+          </button>
+        </div>
+      )}
+
+      {/* 6. Default (No relationship) */}
+      {!status.isBlocking && !status.isBlockedBy && !status.isFriend && !status.isFollowing && 
+       status.friendRequestStatus !== 'PENDING_SENT' && status.friendRequestStatus !== 'PENDING_RECEIVED' && (
+        <div className="rel-btn-group">
+          <button 
+            className="rel-btn add-friend-btn group-main" 
+            disabled={actionLoading}
+            onClick={() => handleAction(() => RelationshipService.sendFriendRequest(targetId), 'Friend request sent')}
+          >
+            <UserPlus size={16} />
+            <span>Add Friend</span>
+          </button>
+          <button 
+            className="rel-btn add-friend-btn group-trigger"
+            disabled={actionLoading}
+            onClick={() => setShowDefaultDropdown(!showDefaultDropdown)}
+          >
+            <ChevronDown size={14} />
+          </button>
+
+          {showDefaultDropdown && (
+            <div className="rel-dropdown-menu">
+              <button onClick={() => handleAction(() => RelationshipService.follow(targetId), 'Following user')}>
+                <User size={14} />
+                <span>Follow</span>
+              </button>
+              <button className="danger" onClick={() => handleAction(() => RelationshipService.block(targetId), 'User blocked')}>
+                <Slash size={14} />
+                <span>Block User</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

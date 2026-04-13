@@ -1,0 +1,193 @@
+.rel-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  height: 40px;
+}
+
+.rel-btn svg {
+  flex-shrink: 0;
+}
+
+.add-friend-btn {
+  background: var(--primary);
+  color: white;
+}
+
+.add-friend-btn:hover {
+  background: var(--primary-dark, #0077cc);
+  transform: translateY(-1px);
+}
+
+.accept-btn {
+  background: var(--success, #22c55e);
+  color: white;
+}
+
+.decline-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error, #ef4444);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.decline-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.pending-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.friend-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.friend-btn:hover {
+  background: var(--bg-secondary);
+}
+
+.following-btn {
+  background: var(--bg-tertiary);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.following-btn:hover {
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.unblock-btn {
+  background: var(--error);
+  color: white;
+}
+
+.rel-action-group {
+  display: flex;
+  gap: 10px;
+}
+
+/* Button Group (Split Button) */
+.rel-btn-group {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.rel-btn-group .group-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rel-btn-group .group-trigger {
+  padding: 0 10px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.rel-btn-group .following-btn.group-main {
+  border-right: 1px solid var(--primary);
+  cursor: default;
+}
+
+.rel-btn-group .following-btn.group-main:hover {
+  background: var(--bg-tertiary); /* No special hover for following main */
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.rel-dropdown-container {
+  position: relative;
+}
+
+.rel-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  width: 180px;
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: dropdownFade 0.2s ease;
+}
+
+@keyframes dropdownFade {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rel-dropdown-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.rel-dropdown-menu button:hover {
+  background: var(--bg-tertiary);
+}
+
+.rel-dropdown-menu button.danger {
+  color: var(--error);
+}
+
+.rel-dropdown-menu button.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.rel-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.rel-status-badge.blocked {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.relationship-actions-skeleton {
+  width: 120px;
+  height: 40px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}

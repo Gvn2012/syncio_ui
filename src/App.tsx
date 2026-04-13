@@ -88,7 +88,7 @@ function AppRoutes() {
           } 
         />
         <Route 
-          path="/profile" 
+          path="/profile/:userId?" 
           element={
             <ProtectedRoute>
               <ProfileScreen />

@@ -159,7 +159,7 @@ export const TopBar: React.FC = () => {
                               className="result-item person" 
                               onClick={() => {
                                 setIsResultsOpen(false);
-                                navigate(`/profile?id=${person.id}`);
+                                navigate(`/profile/${person.id}`);
                               }}
                             >
                               <CachedImage 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { type RootState, type AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
@@ -7,15 +8,21 @@ import { CachedImage } from './common/CachedImage';
 interface UserAvatarProps {
   className?: string;
   size?: number;
+  userId?: string;
+  showLink?: boolean;
 }
 
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size }) => {
+export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId, showLink = true }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { id, userDetail } = useSelector((state: RootState) => state.user);
+  const { id: currentUserId, userDetail } = useSelector((state: RootState) => state.user);
 
-  const user = userDetail?.userResponse;
-  const primaryPicture = userDetail?.userProfileResponse?.userProfilePictureResponseList?.find(p => p.primary);
+  // If userId is provider and not matching currentUserId, we might not have userDetail yet
+  // but for now let's assume if it's the current user we use the detail, 
+  // otherwise we just show fallback or eventually fetch
+  const isCurrentUser = !userId || userId === currentUserId;
+  const user = isCurrentUser ? userDetail?.userResponse : null;
+  const primaryPicture = isCurrentUser ? userDetail?.userProfileResponse?.userProfilePictureResponseList?.find(p => p.primary) : null;
   
   const displayName = user ? `${user.firstName} ${user.lastName}` : 'User';
   
@@ -26,15 +33,15 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size }) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     if (e.currentTarget.src === fallbackUrl) return;
 
-    if (id) {
+    if (currentUserId && isCurrentUser) {
       console.warn("Avatar URL expired/failed. Refreshing user detail...");
-      dispatch(fetchUserDetail(id));
+      dispatch(fetchUserDetail(currentUserId));
     }
     
     e.currentTarget.src = fallbackUrl;
   };
 
-  return (
+  const avatarImage = (
     <CachedImage 
       src={avatarUrl} 
       fallbackSrc={fallbackUrl}
@@ -44,4 +51,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size }) => {
       loading="lazy"
     />
   );
+
+  if (showLink && userId) {
+    return (
+      <Link to={`/profile/${userId}`} className="avatar-link">
+        {avatarImage}
+      </Link>
+    );
+  }
+
+  return avatarImage;
 };
