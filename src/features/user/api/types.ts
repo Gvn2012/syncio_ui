@@ -53,7 +53,8 @@ export interface RelationshipUserSummaryResponse {
   username: string | null;
   displayName: string;
   profilePictureUrl: string | null;
-  relationshipType: 'FRIEND' | 'FOLLOW';
+  relationshipType: 'FRIEND' | 'FOLLOW' | null;
+  mutualFriendsCount?: number;
   createdAt: string;
 }
 

@@ -134,5 +134,27 @@ export const RelationshipService = {
   getFollowingIds: async (userId: string): Promise<APIResource<string[]>> => {
     const response = await api.get<APIResource<string[]>>(`rs/relationships/following/${userId}`);
     return response.data;
+  },
+ 
+  /**
+   * Get paged list of following.
+   */
+  getFollowingPage: async (userId: string, page: number = 0, size: number = 20): Promise<APIResource<PageResponse<RelationshipUserSummaryResponse>>> => {
+    const response = await api.get<APIResource<PageResponse<RelationshipUserSummaryResponse>>>(
+      `rs/relationships/following/${userId}/page`, 
+      { params: { page, size } }
+    );
+    return response.data;
+  },
+ 
+  /**
+   * Get paged list of blocked users.
+   */
+  getBlockedPage: async (page: number = 0, size: number = 20): Promise<APIResource<PageResponse<RelationshipUserSummaryResponse>>> => {
+    const response = await api.get<APIResource<PageResponse<RelationshipUserSummaryResponse>>>(
+      'rs/relationships/blocked/page', 
+      { params: { page, size } }
+    );
+    return response.data;
   }
 };

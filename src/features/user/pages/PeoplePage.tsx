@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
-  ShieldOff
+  ShieldOff,
+  UserCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -42,6 +43,8 @@ export const PeoplePage: React.FC = () => {
   // Data states
   const [friendsData, setFriendsData] = useState<PageResponse<RelationshipUserSummaryResponse> | null>(null);
   const [followersData, setFollowersData] = useState<PageResponse<RelationshipUserSummaryResponse> | null>(null);
+  const [followingData, setFollowingData] = useState<PageResponse<RelationshipUserSummaryResponse> | null>(null);
+  const [blockedData, setBlockedData] = useState<PageResponse<RelationshipUserSummaryResponse> | null>(null);
   const [pendingReceivedData, setPendingReceivedData] = useState<PageResponse<PendingFriendRequestResponse> | null>(null);
   const [pendingSentData, setPendingSentData] = useState<PageResponse<PendingFriendRequestResponse> | null>(null);
   
@@ -53,21 +56,33 @@ export const PeoplePage: React.FC = () => {
     
     setLoading(true);
     try {
-      if (activeTab === 'friends') {
-        const res = await RelationshipService.getFriendsPage(currentUserId, page, pageSize);
-        if (res.success) setFriendsData(res.data);
-        console.log(res.data);
-      } else if (activeTab === 'followers') {
-        const res = await RelationshipService.getFollowersPage(currentUserId, page, pageSize);
-        if (res.success) setFollowersData(res.data);
-      } else if (activeTab === 'requests_received') {
-        const res = await RelationshipService.getPendingRequests('RECEIVED', page, pageSize);
-        if (res.success) setPendingReceivedData(res.data);
-      } else if (activeTab === 'requests_sent') {
-        const res = await RelationshipService.getPendingRequests('SENT', page, pageSize);
-        if (res.success) setPendingSentData(res.data);
+      let res;
+      switch (activeTab) {
+        case 'friends':
+          res = await RelationshipService.getFriendsPage(currentUserId, page, pageSize);
+          if (res.success) setFriendsData(res.data);
+          break;
+        case 'followers':
+          res = await RelationshipService.getFollowersPage(currentUserId, page, pageSize);
+          if (res.success) setFollowersData(res.data);
+          break;
+        case 'following':
+          res = await RelationshipService.getFollowingPage(currentUserId, page, pageSize);
+          if (res.success) setFollowingData(res.data);
+          break;
+        case 'blocked':
+          res = await RelationshipService.getBlockedPage(page, pageSize);
+          if (res.success) setBlockedData(res.data);
+          break;
+        case 'requests_received':
+          res = await RelationshipService.getPendingRequests('RECEIVED', page, pageSize);
+          if (res.success) setPendingReceivedData(res.data);
+          break;
+        case 'requests_sent':
+          res = await RelationshipService.getPendingRequests('SENT', page, pageSize);
+          if (res.success) setPendingSentData(res.data);
+          break;
       }
-      // 'following' and 'blocked' tabs would go here if endpoints were paged
     } catch (error: any) {
       dispatch(showError(error.message || 'Failed to fetch data'));
     } finally {
@@ -78,7 +93,17 @@ export const PeoplePage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
+ 
+  // Initial fetch for badge counts
+  useEffect(() => {
+    if (currentUserId && activeTab !== 'requests_received') {
+      RelationshipService.getPendingRequests('RECEIVED', 0, 1)
+        .then(res => {
+          if (res.success) setPendingReceivedData(res.data);
+        });
+    }
+  }, [currentUserId]);
+ 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setPage(0);
@@ -126,242 +151,310 @@ export const PeoplePage: React.FC = () => {
     );
   };
 
-  const renderEmptyState = (message: string) => (
+  const renderEmptyState = (icon: React.ReactNode, title: string, message: string) => (
     <div className="empty-state">
-      <div className="empty-icon">
-        <Users size={48} />
+      <div className="empty-icon-wrapper">
+        {icon}
       </div>
-      <h3>No people found</h3>
+      <h3>{title}</h3>
       <p>{message}</p>
     </div>
   );
-
-  const renderFriendsTab = () => {
-    if (loading && !friendsData) return <div className="loading-spinner-container"><div className="loading-spinner" /></div>;
-    if (!friendsData || friendsData.content.length === 0) return renderEmptyState("You haven't added any friends yet. Start connecting!");
-    
+ 
+  const PersonSkeleton = () => (
+    <div className="person-card skeleton">
+      <div className="skeleton-avatar" />
+      <div className="skeleton-info">
+        <div className="skeleton-line name" />
+        <div className="skeleton-line username" />
+        <div className="skeleton-line meta" />
+      </div>
+      <div className="skeleton-actions">
+        <div className="skeleton-btn" />
+        <div className="skeleton-btn" />
+      </div>
+    </div>
+  );
+ 
+  const renderPersonCard = (
+    person: RelationshipUserSummaryResponse, 
+    type: 'friend' | 'follower' | 'following' | 'blocked'
+  ) => {
+    const isFriend = type === 'friend';
+    const isFollower = type === 'follower';
+    const isFollowing = type === 'following';
+    const isBlocked = type === 'blocked';
+ 
     return (
-      <div className="people-content">
-        {friendsData.content.map(friend => (
-          <div key={friend.userId} className="person-card">
-            <Link to={`/profile/${friend.userId}`} className="person-avatar-link">
-              <UserAvatar size={64} userId={friend.userId} src={friend.profilePictureUrl || undefined} showLink={false} />
-            </Link>
-            <div className="person-info">
-              <Link to={`/profile/${friend.userId}`} className="person-name">{friend.displayName}</Link>
-              <span className="person-username">@{friend.username}</span>
-              <div className="person-meta">
-                <span className="rel-badge friend">Friend</span>
-              </div>
-            </div>
-            <div className="person-actions">
+      <div key={person.userId} className={`person-card premium ${type}`}>
+        <div className="card-glass-glow" />
+        <Link to={`/profile/${person.userId}`} className="person-avatar-link">
+          <UserAvatar size={72} userId={person.userId} src={person.profilePictureUrl || undefined} showLink={false} />
+          {isFriend && <div className="online-indicator" />}
+        </Link>
+        <div className="person-info">
+          <div className="name-wrapper">
+            <Link to={`/profile/${person.userId}`} className="person-name">{person.displayName}</Link>
+            {isBlocked && <ShieldAlert size={14} className="blocked-icon" />}
+          </div>
+          <span className="person-username">@{person.username}</span>
+          
+          <div className="person-stats">
+            {person.mutualFriendsCount && person.mutualFriendsCount > 0 ? (
+              <span className="mutual-badge">
+                <Users size={12} />
+                {person.mutualFriendsCount} mutual friends
+              </span>
+            ) : (
+              <span className="new-connection-badge">New Connection</span>
+            )}
+          </div>
+        </div>
+        
+        <div className="person-actions-v2">
+          {isFriend && (
+            <>
               <button 
-                className="action-btn-sm" 
-                onClick={() => handleAction(() => RelationshipService.unfriend(friend.userId), "Friend removed")}
+                className="glass-action-btn" 
+                onClick={() => handleAction(() => RelationshipService.unfriend(person.userId), "Friend removed")}
                 title="Unfriend"
               >
                 <UserMinus size={18} />
               </button>
               <button 
-                className="action-btn-sm danger" 
-                onClick={() => handleAction(() => RelationshipService.block(friend.userId), "User blocked")}
+                className="glass-action-btn danger" 
+                onClick={() => handleAction(() => RelationshipService.block(person.userId), "User blocked")}
                 title="Block"
               >
                 <ShieldAlert size={18} />
               </button>
-            </div>
-          </div>
-        ))}
-        {renderPagination(friendsData)}
-      </div>
-    );
-  };
-
-  const renderFollowersTab = () => {
-    if (loading && !followersData) return <div className="loading-spinner-container"><div className="loading-spinner" /></div>;
-    if (!followersData || followersData.content.length === 0) return renderEmptyState("No one is following you yet. Share your profile to get followers!");
-    
-    return (
-      <div className="people-content">
-        {followersData.content.map(follower => (
-          <div key={follower.userId} className="person-card">
-            <Link to={`/profile/${follower.userId}`} className="person-avatar-link">
-              <UserAvatar size={64} userId={follower.userId} src={follower.profilePictureUrl || undefined} showLink={false} />
-            </Link>
-            <div className="person-info">
-              <Link to={`/profile/${follower.userId}`} className="person-name">{follower.displayName}</Link>
-              <span className="person-username">@{follower.username}</span>
-              <div className="person-meta">
-                <span className="rel-badge following">Follower</span>
-              </div>
-            </div>
-            <div className="person-actions">
-              <button 
-                className="action-btn-sm" 
-                onClick={() => handleAction(() => RelationshipService.follow(follower.userId), "Following user")}
-                title="Follow Back"
-              >
-                <UserPlus size={18} />
-              </button>
-            </div>
-          </div>
-        ))}
-        {renderPagination(followersData)}
-      </div>
-    );
-  };
-
-  const renderRequestsReceivedTab = () => {
-    if (loading && !pendingReceivedData) return <div className="loading-spinner-container"><div className="loading-spinner" /></div>;
-    if (!pendingReceivedData || pendingReceivedData.content.length === 0) return renderEmptyState("No pending friend requests received.");
-    
-    return (
-      <div className="people-content">
-        {pendingReceivedData.content.map(req => (
-          <div key={req.requestId} className="request-card">
-            <div className="request-header">
-              <UserAvatar size={48} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
-              <div className="request-user-info">
-                <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
-                <span className="person-username">@{req.username} • {new Date(req.createdAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-            {req.message && <div className="request-message">{req.message}</div>}
-            <div className="request-actions">
-              <button 
-                className="req-btn accept" 
-                onClick={() => handleAction(() => RelationshipService.acceptFriendRequest(req.requestId), "Friend request accepted")}
-              >
-                <Check size={18} />
-                <span>Accept</span>
-              </button>
-              <button 
-                className="req-btn decline" 
-                onClick={() => handleAction(() => RelationshipService.declineFriendRequest(req.requestId), "Friend request declined")}
-              >
-                <X size={18} />
-                <span>Decline</span>
-              </button>
-            </div>
-          </div>
-        ))}
-        {renderPagination(pendingReceivedData)}
-      </div>
-    );
-  };
-
-  const renderRequestsSentTab = () => {
-    if (loading && !pendingSentData) return <div className="loading-spinner-container"><div className="loading-spinner" /></div>;
-    if (!pendingSentData || pendingSentData.content.length === 0) return renderEmptyState("No outgoing friend requests.");
-    
-    return (
-      <div className="people-content">
-        {pendingSentData.content.map(req => (
-          <div key={req.requestId} className="request-card">
-            <div className="request-header">
-              <UserAvatar size={48} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
-              <div className="request-user-info">
-                <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
-                <span className="person-username">@{req.username} • Sent on {new Date(req.createdAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-            {req.message && <div className="request-message">{req.message}</div>}
-            <div className="request-actions">
-              <button 
-                className="req-btn cancel" 
-                onClick={() => handleAction(() => RelationshipService.declineFriendRequest(req.requestId), "Friend request cancelled")}
-              >
-                <X size={18} />
-                <span>Cancel Request</span>
-              </button>
-            </div>
-          </div>
-        ))}
-        {renderPagination(pendingSentData)}
-      </div>
-    );
-  };
-
-  // Mock for Tabs not fully supported by paged backend yet
-  const renderSimpleTab = (title: string, message: string) => (
-    <div className="people-content">
-      <div className="empty-state">
-        <div className="empty-icon">
-          <Users size={48} />
+            </>
+          )}
+          {isFollower && (
+            <button 
+              className="glass-action-btn primary" 
+              onClick={() => handleAction(() => RelationshipService.follow(person.userId), "Following user")}
+              title="Follow Back"
+            >
+              <UserPlus size={18} />
+              <span>Follow Back</span>
+            </button>
+          )}
+          {isFollowing && (
+            <button 
+              className="glass-action-btn outline" 
+              onClick={() => handleAction(() => RelationshipService.unfollow(person.userId), "Unfollowed successful")}
+              title="Unfollow"
+            >
+              <UserMinus size={18} />
+              <span>Unfollow</span>
+            </button>
+          )}
+          {isBlocked && (
+            <button 
+              className="glass-action-btn success" 
+              onClick={() => handleAction(() => RelationshipService.unblock(person.userId), "User unblocked")}
+              title="Unblock"
+            >
+              <ShieldOff size={18} />
+              <span>Unblock</span>
+            </button>
+          )}
         </div>
-        <h3>{title}</h3>
-        <p>{message}</p>
       </div>
-    </div>
-  );
+    );
+  };
 
+  const renderTabContent = () => {
+    if (loading) {
+      return (
+        <div className="people-grid">
+          {[...Array(6)].map((_, i) => <PersonSkeleton key={i} />)}
+        </div>
+      );
+    }
+ 
+    switch (activeTab) {
+      case 'friends':
+        if (!friendsData || friendsData.content.length === 0) 
+          return renderEmptyState(<UserCircle size={48} />, "No friends yet", "Connect with people to see them here.");
+        return (
+          <div className="people-grid-container">
+            <div className="people-grid">
+              {friendsData.content.map(p => renderPersonCard(p, 'friend'))}
+            </div>
+            {renderPagination(friendsData)}
+          </div>
+        );
+      case 'followers':
+        if (!followersData || followersData.content.length === 0) 
+          return renderEmptyState(<Users size={48} />, "No followers", "Share your profile to get discovered!");
+        return (
+          <div className="people-grid-container">
+            <div className="people-grid">
+              {followersData.content.map(p => renderPersonCard(p, 'follower'))}
+            </div>
+            {renderPagination(followersData)}
+          </div>
+        );
+      case 'following':
+        if (!followingData || followingData.content.length === 0) 
+          return renderEmptyState(<Users size={48} />, "Not following anyone", "Explore and follow interesting people.");
+        return (
+          <div className="people-grid-container">
+            <div className="people-grid">
+              {followingData.content.map(p => renderPersonCard(p, 'following'))}
+            </div>
+            {renderPagination(followingData)}
+          </div>
+        );
+      case 'blocked':
+        if (!blockedData || blockedData.content.length === 0) 
+          return renderEmptyState(<ShieldOff size={48} />, "Clean blocklist", "No users are currently blocked.");
+        return (
+          <div className="people-grid-container">
+            <div className="people-grid">
+              {blockedData.content.map(p => renderPersonCard(p, 'blocked'))}
+            </div>
+            {renderPagination(blockedData)}
+          </div>
+        );
+      case 'requests_received':
+        if (!pendingReceivedData || pendingReceivedData.content.length === 0) 
+          return renderEmptyState(<Clock size={48} />, "No requests", "You have no pending friend requests.");
+        return (
+          <div className="requests-stack">
+            {pendingReceivedData.content.map(req => (
+              <div key={req.requestId} className="request-card premium">
+                <div className="request-header">
+                  <UserAvatar size={56} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
+                  <div className="request-user-info">
+                    <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
+                    <span className="person-username">@{req.username}</span>
+                    <span className="request-time">{new Date(req.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                {req.message && <div className="request-message-v2">{req.message}</div>}
+                <div className="request-actions-v2">
+                  <button 
+                    className="req-btn-v2 accept" 
+                    onClick={() => handleAction(() => RelationshipService.acceptFriendRequest(req.requestId), "Friend request accepted")}
+                  >
+                    <Check size={18} />
+                    <span>Accept</span>
+                  </button>
+                  <button 
+                    className="req-btn-v2 decline" 
+                    onClick={() => handleAction(() => RelationshipService.declineFriendRequest(req.requestId), "Friend request declined")}
+                  >
+                    <X size={18} />
+                    <span>Decline</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+            {renderPagination(pendingReceivedData)}
+          </div>
+        );
+      case 'requests_sent':
+        if (!pendingSentData || pendingSentData.content.length === 0) 
+          return renderEmptyState(<UserPlus size={48} />, "No outcoming requests", "Send requests to start new friendships!");
+        return (
+          <div className="requests-stack">
+            {pendingSentData.content.map(req => (
+              <div key={req.requestId} className="request-card premium sent">
+                <div className="request-header">
+                  <UserAvatar size={56} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
+                  <div className="request-user-info">
+                    <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
+                    <span className="person-username">@{req.username}</span>
+                    <span className="request-time">Sent on {new Date(req.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                {req.message && <div className="request-message-v2">{req.message}</div>}
+                <div className="request-actions-v2">
+                  <button 
+                    className="req-btn-v2 cancel" 
+                    onClick={() => handleAction(() => RelationshipService.declineFriendRequest(req.requestId), "Friend request cancelled")}
+                  >
+                    <X size={18} />
+                    <span>Cancel Request</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+            {renderPagination(pendingSentData)}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+ 
   return (
     <Layout>
       <div className="people-page">
-        <header className="people-header">
-          <button className="back-btn" onClick={() => navigate(-1)}>
+        <header className="people-header-v2">
+          <div className="header-bg-glow" />
+          <button className="back-btn-v2" onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
-            <span>Back</span>
           </button>
-          <h1>People</h1>
-          <p>Manage your connections, followers, and requests.</p>
+          <div className="header-content">
+            <h1>Dynamic Network</h1>
+            <p>Connect, discover, and build your social circle in real-time.</p>
+          </div>
         </header>
-
-        <nav className="people-tabs">
+ 
+        <nav className="people-tabs-v2">
           <button 
-            className={`tab-btn ${activeTab === 'friends' ? 'active' : ''}`}
+            className={`tab-btn-v2 ${activeTab === 'friends' ? 'active' : ''}`}
             onClick={() => handleTabChange('friends')}
           >
             <UserCheck size={18} />
             <span>Friends</span>
           </button>
           <button 
-            className={`tab-btn ${activeTab === 'requests_received' ? 'active' : ''}`}
-            onClick={() => handleTabChange('requests_received')}
-          >
-            <Clock size={18} />
-            <span>Requests Received</span>
-            {(pendingReceivedData?.totalElements || 0) > 0 && (
-              <span className="tab-badge received">{pendingReceivedData?.totalElements}</span>
-            )}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'requests_sent' ? 'active' : ''}`}
-            onClick={() => handleTabChange('requests_sent')}
-          >
-            <UserPlus size={18} />
-            <span>Requests Sent</span>
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'following' ? 'active' : ''}`}
+            className={`tab-btn-v2 ${activeTab === 'following' ? 'active' : ''}`}
             onClick={() => handleTabChange('following')}
           >
-            <Users size={18} />
+            <UserPlus size={18} />
             <span>Following</span>
           </button>
           <button 
-            className={`tab-btn ${activeTab === 'followers' ? 'active' : ''}`}
+            className={`tab-btn-v2 ${activeTab === 'followers' ? 'active' : ''}`}
             onClick={() => handleTabChange('followers')}
           >
             <Users size={18} />
             <span>Followers</span>
           </button>
           <button 
-            className={`tab-btn ${activeTab === 'blocked' ? 'active' : ''}`}
+            className={`tab-btn-v2 ${activeTab === 'requests_received' ? 'active' : ''}`}
+            onClick={() => handleTabChange('requests_received')}
+          >
+            <Clock size={18} />
+            <span>Received</span>
+            {(pendingReceivedData?.totalElements || 0) > 0 && (
+              <span className="tab-indicator">{pendingReceivedData?.totalElements}</span>
+            )}
+          </button>
+          <button 
+            className={`tab-btn-v2 ${activeTab === 'requests_sent' ? 'active' : ''}`}
+            onClick={() => handleTabChange('requests_sent')}
+          >
+            <Clock size={18} />
+            <span>Sent</span>
+          </button>
+          <button 
+            className={`tab-btn-v2 ${activeTab === 'blocked' ? 'active' : ''}`}
             onClick={() => handleTabChange('blocked')}
           >
             <ShieldOff size={18} />
-            <span>Blocked</span>
+            <span>Privacy</span>
           </button>
         </nav>
-
-        <section className="people-main">
-          {activeTab === 'friends' && renderFriendsTab()}
-          {activeTab === 'followers' && renderFollowersTab()}
-          {activeTab === 'requests_received' && renderRequestsReceivedTab()}
-          {activeTab === 'requests_sent' && renderRequestsSentTab()}
-          {activeTab === 'following' && renderSimpleTab("Following", "List of users you follow will appear here. Paged support coming soon.")}
-          {activeTab === 'blocked' && renderSimpleTab("Blocked", "List of blocked users will appear here. Paged support coming soon.")}
+ 
+        <section className="people-main-v2">
+          {renderTabContent()}
         </section>
       </div>
     </Layout>
