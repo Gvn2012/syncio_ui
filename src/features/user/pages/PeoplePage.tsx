@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { motion } from 'framer-motion';
 import { Layout } from '../../../components/Layout';
 import { RelationshipService } from '../api/relationship.service';
 import type { 
@@ -47,6 +48,7 @@ export const PeoplePage: React.FC = () => {
   const [blockedData, setBlockedData] = useState<PageResponse<RelationshipUserSummaryResponse> | null>(null);
   const [pendingReceivedData, setPendingReceivedData] = useState<PageResponse<PendingFriendRequestResponse> | null>(null);
   const [pendingSentData, setPendingSentData] = useState<PageResponse<PendingFriendRequestResponse> | null>(null);
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
   
   // NOTE: Backend doesn't have paged following/blocked yet, so we'll store them as simple lists if needed
   // or just use the currentUserId to get counts if possible.
@@ -94,12 +96,19 @@ export const PeoplePage: React.FC = () => {
     fetchData();
   }, [fetchData]);
  
-  // Initial fetch for badge counts
+  // Initial fetch for badge counts and following IDs
   useEffect(() => {
-    if (currentUserId && activeTab !== 'requests_received') {
-      RelationshipService.getPendingRequests('RECEIVED', 0, 1)
+    if (currentUserId) {
+      if (activeTab !== 'requests_received') {
+        RelationshipService.getPendingRequests('RECEIVED', 0, 1)
+          .then(res => {
+            if (res.success) setPendingReceivedData(res.data);
+          });
+      }
+      
+      RelationshipService.getFollowingIds(currentUserId)
         .then(res => {
-          if (res.success) setPendingReceivedData(res.data);
+          if (res.success) setFollowingIds(res.data);
         });
     }
   }, [currentUserId]);
@@ -115,6 +124,12 @@ export const PeoplePage: React.FC = () => {
       if (res.success) {
         dispatch(showSuccess(successMsg));
         fetchData();
+        // Refresh following IDs if we followed/unfollowed
+        if (currentUserId) {
+          RelationshipService.getFollowingIds(currentUserId).then(r => {
+            if (r.success) setFollowingIds(r.data);
+          });
+        }
       } else {
         dispatch(showError(res.message || 'Action failed'));
       }
@@ -162,7 +177,7 @@ export const PeoplePage: React.FC = () => {
   );
  
   const PersonSkeleton = () => (
-    <div className="person-card skeleton">
+    <div className="person-card premium skeleton">
       <div className="skeleton-avatar" />
       <div className="skeleton-info">
         <div className="skeleton-line name" />
@@ -190,7 +205,6 @@ export const PeoplePage: React.FC = () => {
         <div className="card-glass-glow" />
         <Link to={`/profile/${person.userId}`} className="person-avatar-link">
           <UserAvatar size={72} userId={person.userId} src={person.profilePictureUrl || undefined} showLink={false} />
-          {isFriend && <div className="online-indicator" />}
         </Link>
         <div className="person-info">
           <div className="name-wrapper">
@@ -199,16 +213,7 @@ export const PeoplePage: React.FC = () => {
           </div>
           <span className="person-username">@{person.username}</span>
           
-          <div className="person-stats">
-            {person.mutualFriendsCount && person.mutualFriendsCount > 0 ? (
-              <span className="mutual-badge">
-                <Users size={12} />
-                {person.mutualFriendsCount} mutual friends
-              </span>
-            ) : (
-              <span className="new-connection-badge">New Connection</span>
-            )}
-          </div>
+          
         </div>
         
         <div className="person-actions-v2">
@@ -230,7 +235,7 @@ export const PeoplePage: React.FC = () => {
               </button>
             </>
           )}
-          {isFollower && (
+          {isFollower && !followingIds.includes(person.userId) && person.relationshipType !== 'FRIEND' && (
             <button 
               className="glass-action-btn primary" 
               onClick={() => handleAction(() => RelationshipService.follow(person.userId), "Following user")}
@@ -326,15 +331,17 @@ export const PeoplePage: React.FC = () => {
           <div className="requests-stack">
             {pendingReceivedData.content.map(req => (
               <div key={req.requestId} className="request-card premium">
-                <div className="request-header">
-                  <UserAvatar size={56} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
-                  <div className="request-user-info">
-                    <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
-                    <span className="person-username">@{req.username}</span>
-                    <span className="request-time">{new Date(req.createdAt).toLocaleDateString()}</span>
+                <div className="request-content-v2">
+                  <div className="request-header">
+                    <UserAvatar size={56} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
+                    <div className="request-user-info">
+                      <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
+                      <span className="person-username">@{req.username}</span>
+                      <span className="request-time">{new Date(req.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
+                  {req.message && <div className="request-message-v2">{req.message}</div>}
                 </div>
-                {req.message && <div className="request-message-v2">{req.message}</div>}
                 <div className="request-actions-v2">
                   <button 
                     className="req-btn-v2 accept" 
@@ -363,15 +370,17 @@ export const PeoplePage: React.FC = () => {
           <div className="requests-stack">
             {pendingSentData.content.map(req => (
               <div key={req.requestId} className="request-card premium sent">
-                <div className="request-header">
-                  <UserAvatar size={56} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
-                  <div className="request-user-info">
-                    <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
-                    <span className="person-username">@{req.username}</span>
-                    <span className="request-time">Sent on {new Date(req.createdAt).toLocaleDateString()}</span>
+                <div className="request-content-v2">
+                  <div className="request-header">
+                    <UserAvatar size={56} userId={req.otherUserId} src={req.profilePictureUrl || undefined} />
+                    <div className="request-user-info">
+                      <Link to={`/profile/${req.otherUserId}`} className="person-name">{req.displayName}</Link>
+                      <span className="person-username">@{req.username}</span>
+                      <span className="request-time">Sent on {new Date(req.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
+                  {req.message && <div className="request-message-v2">{req.message}</div>}
                 </div>
-                {req.message && <div className="request-message-v2">{req.message}</div>}
                 <div className="request-actions-v2">
                   <button 
                     className="req-btn-v2 cancel" 
@@ -406,51 +415,36 @@ export const PeoplePage: React.FC = () => {
         </header>
  
         <nav className="people-tabs-v2">
-          <button 
-            className={`tab-btn-v2 ${activeTab === 'friends' ? 'active' : ''}`}
-            onClick={() => handleTabChange('friends')}
-          >
-            <UserCheck size={18} />
-            <span>Friends</span>
-          </button>
-          <button 
-            className={`tab-btn-v2 ${activeTab === 'following' ? 'active' : ''}`}
-            onClick={() => handleTabChange('following')}
-          >
-            <UserPlus size={18} />
-            <span>Following</span>
-          </button>
-          <button 
-            className={`tab-btn-v2 ${activeTab === 'followers' ? 'active' : ''}`}
-            onClick={() => handleTabChange('followers')}
-          >
-            <Users size={18} />
-            <span>Followers</span>
-          </button>
-          <button 
-            className={`tab-btn-v2 ${activeTab === 'requests_received' ? 'active' : ''}`}
-            onClick={() => handleTabChange('requests_received')}
-          >
-            <Clock size={18} />
-            <span>Received</span>
-            {(pendingReceivedData?.totalElements || 0) > 0 && (
-              <span className="tab-indicator">{pendingReceivedData?.totalElements}</span>
-            )}
-          </button>
-          <button 
-            className={`tab-btn-v2 ${activeTab === 'requests_sent' ? 'active' : ''}`}
-            onClick={() => handleTabChange('requests_sent')}
-          >
-            <Clock size={18} />
-            <span>Sent</span>
-          </button>
-          <button 
-            className={`tab-btn-v2 ${activeTab === 'blocked' ? 'active' : ''}`}
-            onClick={() => handleTabChange('blocked')}
-          >
-            <ShieldOff size={18} />
-            <span>Privacy</span>
-          </button>
+          {[
+            { id: 'friends', icon: <UserCheck size={18} />, label: 'Friends' },
+            { id: 'following', icon: <UserPlus size={18} />, label: 'Following' },
+            { id: 'followers', icon: <Users size={18} />, label: 'Followers' },
+            { id: 'requests_received', icon: <Clock size={18} />, label: 'Received', indicator: pendingReceivedData?.totalElements },
+            { id: 'requests_sent', icon: <Clock size={18} />, label: 'Sent' },
+            { id: 'blocked', icon: <ShieldOff size={18} />, label: 'Privacy' },
+          ].map(tab => (
+            <button 
+              key={tab.id}
+              className={`tab-btn-v2 ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => handleTabChange(tab.id as TabType)}
+            >
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="active-tab-indicator"
+                  className="tab-active-bg"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="tab-content-z">
+                {tab.icon}
+                <span>{tab.label}</span>
+                {!!tab.indicator && tab.indicator > 0 && (
+                  <span className="tab-indicator">{tab.indicator}</span>
+                )}
+              </span>
+            </button>
+          ))}
         </nav>
  
         <section className="people-main-v2">
