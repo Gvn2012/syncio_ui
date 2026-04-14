@@ -32,3 +32,62 @@ export interface GetUserListResponse {
 
 /** Response type for GET /api/v1/users?id=userId */
 export type GetUserDetailResponse = UserDetailResponse;
+
+// --- Relationship Types ---
+
+export type FriendRequestStatus = 'NONE' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'ACCEPTED' | 'REJECTED';
+
+export interface RelationshipStatusResponse {
+  isFollowing: boolean;
+  isFollowedBy: boolean;
+  isFriend: boolean;
+  isBlocking: boolean;
+  isBlockedBy: boolean;
+  friendRequestStatus: FriendRequestStatus;
+  friendRequestId?: string;
+}
+
+export interface RelationshipUserSummaryResponse {
+  relationshipId: string;
+  userId: string;
+  username: string | null;
+  displayName: string;
+  profilePictureUrl: string | null;
+  relationshipType: 'FRIEND' | 'FOLLOW';
+  createdAt: string;
+}
+
+export interface PendingFriendRequestResponse {
+  requestId: string;
+  senderUserId: string;
+  receiverUserId: string;
+  otherUserId: string;
+  direction: 'SENT' | 'RECEIVED';
+  username: string | null;
+  displayName: string;
+  profilePictureUrl: string | null;
+  message?: string;
+  seen: boolean;
+  createdAt: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export type BlockReason = 
+  | 'HARASSMENT' 
+  | 'SPAM' 
+  | 'INAPPROPRIATE_CONTENT' 
+  | 'UNWANTED_CONTACT' 
+  | 'IMPERSONATION' 
+  | 'PERSONAL' 
+  | 'OTHER';
+
+export type PendingRequestDirection = 'ALL' | 'RECEIVED' | 'SENT';

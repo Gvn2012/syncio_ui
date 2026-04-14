@@ -12,7 +12,8 @@ import {
   ShieldOff,
   User
 } from 'lucide-react';
-import { RelationshipService, type RelationshipStatusResponse } from '../api/relationship.service';
+import { RelationshipService } from '../api/relationship.service';
+import type { RelationshipStatusResponse } from '../api/types';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
 import { useDispatch } from 'react-redux';
 import { useRef } from 'react';
@@ -20,9 +21,10 @@ import './RelationshipActions.css';
 
 interface RelationshipActionsProps {
   targetId: string;
+  onStatusChange?: (status: RelationshipStatusResponse) => void;
 }
 
-export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ targetId }) => {
+export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ targetId, onStatusChange }) => {
   const dispatch = useDispatch();
   const [status, setStatus] = useState<RelationshipStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,7 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
       setLoading(true);
       const data = await RelationshipService.getStatus(targetId);
       setStatus(data);
+      if (onStatusChange) onStatusChange(data);
     } catch (error) {
       console.error('Failed to fetch relationship status:', error);
     } finally {
@@ -74,7 +77,8 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
         dispatch(showError(res.message || 'Action failed'));
       }
     } catch (error: any) {
-      dispatch(showError(error.message || 'Action failed'));
+      const message = error?.response?.data?.message || error.message || 'Action failed';
+      dispatch(showError(message));
     } finally {
       setActionLoading(false);
       setShowDropdown(false);
@@ -86,8 +90,6 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
   if (loading) {
     return <div className="relationship-actions-skeleton" />;
   }
-
-  if (!status) return null;
 
   if (!status) return null;
 
@@ -156,15 +158,25 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
           
           {showDropdown && (
             <div className="rel-dropdown-menu">
-              <button onClick={() => handleAction(() => RelationshipService.unfriend(targetId), 'Friendship removed')}>
+              <button 
+                onClick={() => handleAction(() => RelationshipService.unfriend(targetId), 'Friendship removed')}
+                disabled={actionLoading}
+              >
                 <UserMinus size={14} />
                 <span>Unfriend</span>
               </button>
-              <button onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}>
+              <button 
+                onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}
+                disabled={actionLoading}
+              >
                 <UserX size={14} />
                 <span>Unfollow</span>
               </button>
-              <button className="danger" onClick={() => handleAction(() => RelationshipService.block(targetId), 'User blocked')}>
+              <button 
+                className="danger" 
+                onClick={() => handleAction(() => RelationshipService.block(targetId, 'OTHER'), 'User blocked')}
+                disabled={actionLoading}
+              >
                 <Slash size={14} />
                 <span>Block User</span>
               </button>
@@ -191,11 +203,18 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
 
             {showFollowingDropdown && (
               <div className="rel-dropdown-menu">
-                <button onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}>
+                <button 
+                  onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}
+                  disabled={actionLoading}
+                >
                   <UserX size={14} />
                   <span>Unfollow</span>
                 </button>
-                <button className="danger" onClick={() => handleAction(() => RelationshipService.block(targetId), 'User blocked')}>
+                <button 
+                  className="danger" 
+                  onClick={() => handleAction(() => RelationshipService.block(targetId, 'OTHER'), 'User blocked')}
+                  disabled={actionLoading}
+                >
                   <Slash size={14} />
                   <span>Block User</span>
                 </button>
@@ -236,11 +255,18 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
 
           {showDefaultDropdown && (
             <div className="rel-dropdown-menu">
-              <button onClick={() => handleAction(() => RelationshipService.follow(targetId), 'Following user')}>
+              <button 
+                onClick={() => handleAction(() => RelationshipService.follow(targetId), 'Following user')}
+                disabled={actionLoading}
+              >
                 <User size={14} />
                 <span>Follow</span>
               </button>
-              <button className="danger" onClick={() => handleAction(() => RelationshipService.block(targetId), 'User blocked')}>
+              <button 
+                className="danger" 
+                onClick={() => handleAction(() => RelationshipService.block(targetId, 'OTHER'), 'User blocked')}
+                disabled={actionLoading}
+              >
                 <Slash size={14} />
                 <span>Block User</span>
               </button>

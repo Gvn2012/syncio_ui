@@ -14,6 +14,7 @@ import { SettingsPage } from './features/settings/pages/SettingsPage';
 import { OrganizationScreen } from './features/org/pages/OrganizationScreen';
 import { CreatePostScreen } from './features/feed/pages/CreatePostScreen';
 import { MessagesPage } from './features/messages/pages/MessagesPage';
+import { PeoplePage } from './features/user/pages/PeoplePage';
 import { ImageLightbox } from './components/ImageLightbox';
 import { GlobalTooltip } from './components/GlobalTooltip';
 import { AnimatePresence } from 'framer-motion';
@@ -140,6 +141,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <MessagesPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/people" 
+          element={
+            <ProtectedRoute>
+              <PeoplePage />
             </ProtectedRoute>
           } 
         />

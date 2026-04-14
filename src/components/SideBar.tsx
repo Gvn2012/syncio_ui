@@ -11,8 +11,10 @@ import {
   Settings,
   RefreshCw,
   Building2,
-  User
+  User,
+  Users
 } from 'lucide-react';
+import { RelationshipService } from '../features/user/api/relationship.service';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
@@ -21,6 +23,7 @@ import './SideBar.css';
 
 const navItems = [
   { id: 'feed', label: 'Feed', icon: LayoutDashboard, path: '/' },
+  { id: 'people', label: 'People', icon: Users, path: '/people' },
   { id: 'organizations', label: 'Organizations', icon: Building2, path: '/organizations' },
   { id: 'tasks', label: 'Tasks', icon: CheckCircle2, path: '/tasks' },
   { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/messages' },
@@ -33,12 +36,30 @@ export const SideBar: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { id, userDetail } = useSelector((state: RootState) => state.user);
 
-  // Fetch user detail if not already loaded
   useEffect(() => {
     if (id && !userDetail) {
       dispatch(fetchUserDetail(id));
     }
   }, [id, userDetail, dispatch]);
+
+  const [pendingCount, setPendingCount] = React.useState(0);
+
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      if (!id) return;
+      try {
+        const res = await RelationshipService.getPendingRequests('RECEIVED', 0, 1);
+        if (res.success) {
+          setPendingCount(res.data.totalElements);
+        }
+      } catch (err) {
+        console.error("Failed to fetch pending requests count", err);
+      }
+    };
+
+    fetchPendingCount();
+    // Refresh count when location changes (in case user handled requests in People page)
+  }, [id, location.pathname]);
 
   // Derive display values from userDetail
   const displayName = userDetail
@@ -71,6 +92,9 @@ export const SideBar: React.FC = () => {
               >
                 <item.icon size={20} className="nav-icon" />
                 <span>{item.label}</span>
+                {item.id === 'people' && pendingCount > 0 && (
+                  <span className="nav-badge">{pendingCount}</span>
+                )}
               </Link>
             </li>
           ))}

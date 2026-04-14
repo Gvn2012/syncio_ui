@@ -101,6 +101,17 @@
   border-radius: var(--radius-full) 0 0 var(--radius-full);
 }
 
+.nav-badge {
+  background-color: var(--error);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: auto;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
 .sidebar-action {
   margin: 1rem 0;
   padding: 0 12px;

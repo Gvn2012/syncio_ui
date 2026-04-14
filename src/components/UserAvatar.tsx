@@ -10,10 +10,11 @@ interface UserAvatarProps {
   size?: number;
   userId?: string;
   showLink?: boolean;
+  src?: string;
 }
 
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId, showLink = true }) => {
+export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId, showLink = true, src }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { id: currentUserId, userDetail } = useSelector((state: RootState) => state.user);
 
@@ -28,7 +29,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId,
   
   const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2596be&color=fff&size=${size || 200}`;
   
-  const avatarUrl = primaryPicture?.url || fallbackUrl;
+  const avatarUrl = src || primaryPicture?.url || fallbackUrl;
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     if (e.currentTarget.src === fallbackUrl) return;

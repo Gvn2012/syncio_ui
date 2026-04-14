@@ -56,7 +56,7 @@ export const ProfileScreen: React.FC = () => {
   const effectiveUserId = isOwnProfile ? currentUserId : userId;
   const userDetail = isOwnProfile ? currentUserDetail : externalUserDetail;
   const isLoading = isOwnProfile ? currentUserLoading : externalLoading;
-  const hasError = isOwnProfile ? false : !!externalError; // Adjust as needed
+  const hasError = isOwnProfile ? false : !!externalError;
 
   const [isUploading, setIsUploading] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
@@ -96,12 +96,18 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const handleStatusChange = (status: any) => {
+    if (status.isBlocking || status.isBlockedBy) {
+      setIsBlocked(true);
+    } else {
+      setIsBlocked(false);
+    }
+  };
+
   const checkBlockStatus = async (uid: string) => {
     try {
       const status = await RelationshipService.getStatus(uid);
-      if (status.isBlocking || status.isBlockedBy) {
-        setIsBlocked(true);
-      }
+      handleStatusChange(status);
     } catch (e) {
       console.error('Failed to check block status', e);
     }
@@ -178,7 +184,7 @@ export const ProfileScreen: React.FC = () => {
             <AlertTriangle size={48} color="var(--error)" />
             <h3>Profile Restricted</h3>
             <p>You cannot view this profile because one of you has blocked the other.</p>
-            <RelationshipActions targetId={userId!} />
+            <RelationshipActions targetId={userId!} onStatusChange={handleStatusChange} />
           </div>
         </div>
       </Layout>
@@ -304,7 +310,7 @@ export const ProfileScreen: React.FC = () => {
                 </div>
                 {!isOwnProfile && userId && (
                   <div className="profile-actions-area">
-                    <RelationshipActions targetId={userId} />
+                    <RelationshipActions targetId={userId} onStatusChange={handleStatusChange} />
                   </div>
                 )}
                 <div className="profile-quick-stats">
