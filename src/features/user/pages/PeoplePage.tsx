@@ -384,7 +384,7 @@ export const PeoplePage: React.FC = () => {
                 <div className="request-actions-v2">
                   <button 
                     className="req-btn-v2 cancel" 
-                    onClick={() => handleAction(() => RelationshipService.declineFriendRequest(req.requestId), "Friend request cancelled")}
+                    onClick={() => handleAction(() => RelationshipService.cancelFriendRequest(req.requestId), "Friend request cancelled")}
                   >
                     <X size={18} />
                     <span>Cancel Request</span>

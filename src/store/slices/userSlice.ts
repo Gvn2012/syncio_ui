@@ -10,7 +10,7 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   orgId: string | null;
-  // User detail from API
+  rtoken: string | null;
   userDetail: UserDetailResponse | null;
   userDetailLoading: boolean;
   userDetailError: string | null;
@@ -21,6 +21,7 @@ const initialState: UserState = {
   username: null,
   role: [],
   token: null,
+  rtoken: null,
   isAuthenticated: false,
   orgId: null,
   userDetail: null,
@@ -28,10 +29,7 @@ const initialState: UserState = {
   userDetailError: null,
 };
 
-/**
- * Async thunk to fetch user detail from GET /api/v1/users?id=userId.
- * Reads the userId from the Redux store's user.id field.
- */
+
 export const fetchUserDetail = createAsyncThunk(
   'user/fetchUserDetail',
   async (userId: string, { rejectWithValue }) => {
@@ -52,11 +50,12 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<{ id: string; username: string; role: String[]; token: string; orgId: string }>) => {
+    setUser: (state, action: PayloadAction<{ id: string; username: string; role: String[]; token: string; rtoken: string; orgId: string }>) => {
       state.id = action.payload.id;
       state.username = action.payload.username;
       state.role = action.payload.role;
       state.token = action.payload.token;
+      state.rtoken = action.payload.rtoken;
       state.isAuthenticated = true;
       state.orgId = action.payload.orgId;
     },
@@ -65,6 +64,7 @@ const userSlice = createSlice({
       state.username = null;
       state.role = [];
       state.token = null;
+      state.rtoken = null;
       state.isAuthenticated = false;
       state.orgId = null;
       state.userDetail = null;

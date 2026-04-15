@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UserPlus, 
   UserMinus, 
@@ -6,7 +6,6 @@ import {
   UserX, 
   Slash, 
   ChevronDown,
-  Clock,
   Check,
   X,
   ShieldOff,
@@ -16,7 +15,6 @@ import { RelationshipService } from '../api/relationship.service';
 import type { RelationshipStatusResponse } from '../api/types';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
 import { useDispatch } from 'react-redux';
-import { useRef } from 'react';
 import './RelationshipActions.css';
 
 interface RelationshipActionsProps {
@@ -138,9 +136,13 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
 
       {/* 3. Friend Request Sent */}
       {!status.isBlocking && !status.isBlockedBy && status.friendRequestStatus === 'PENDING_SENT' && (
-        <button className="rel-btn pending-btn" disabled>
-          <Clock size={16} />
-          <span>Request Sent</span>
+        <button 
+          className="rel-btn cancel-request-btn" 
+          disabled={actionLoading || !status.friendRequestId}
+          onClick={() => status.friendRequestId && handleAction(() => RelationshipService.cancelFriendRequest(status.friendRequestId!), 'Friend request cancelled')}
+        >
+          <X size={16} />
+          <span>Cancel Request</span>
         </button>
       )}
 
@@ -165,13 +167,24 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
                 <UserMinus size={14} />
                 <span>Unfriend</span>
               </button>
-              <button 
-                onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}
-                disabled={actionLoading}
-              >
-                <UserX size={14} />
-                <span>Unfollow</span>
-              </button>
+              
+              {!status.isFollowing ? (
+                <button 
+                  onClick={() => handleAction(() => RelationshipService.follow(targetId), 'Following user')}
+                  disabled={actionLoading}
+                >
+                  <UserPlus size={14} />
+                  <span>Follow</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => handleAction(() => RelationshipService.unfollow(targetId), 'Unfollowed user')}
+                  disabled={actionLoading}
+                >
+                  <UserX size={14} />
+                  <span>Unfollow</span>
+                </button>
+              )}
               <button 
                 className="danger" 
                 onClick={() => handleAction(() => RelationshipService.block(targetId, 'OTHER'), 'User blocked')}
@@ -259,8 +272,8 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
                 onClick={() => handleAction(() => RelationshipService.follow(targetId), 'Following user')}
                 disabled={actionLoading}
               >
-                <User size={14} />
-                <span>Follow</span>
+                {status.isFollowedBy ? <UserCheck size={14} /> : <User size={14} />}
+                <span>{status.isFollowedBy ? 'Follow back' : 'Follow'}</span>
               </button>
               <button 
                 className="danger" 

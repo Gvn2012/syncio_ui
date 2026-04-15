@@ -14,29 +14,31 @@ export const RelationshipService = {
    * Get relationship status between current user and target user.
    */
   getStatus: async (targetId: string): Promise<RelationshipStatusResponse> => {
-    const response = await api.get<RelationshipStatusResponse>(`rs/relationships/status/${targetId}`);
-    return response.data;
+    const response = await api.get<any>(`rs/relationships/status/${targetId}`);
+    const data = response.data;
+    return {
+      isFollowing: data.following,
+      isFollowedBy: data.followedBy,
+      isFriend: data.friend,
+      isBlocking: data.blocking,
+      isBlockedBy: data.blockedBy,
+      friendRequestStatus: data.friendRequestStatus,
+      friendRequestId: data.friendRequestId
+    } as RelationshipStatusResponse;
   },
 
-  /**
-   * Follow a user.
-   */
+
   follow: async (targetId: string): Promise<APIResource<any>> => {
     const response = await api.post<APIResource<any>>(`rs/relationships/follow/${targetId}`);
     return response.data;
   },
 
-  /**
-   * Unfollow a user.
-   */
+
   unfollow: async (targetId: string): Promise<APIResource<void>> => {
     const response = await api.post<APIResource<void>>(`rs/relationships/unfollow/${targetId}`);
     return response.data;
   },
 
-  /**
-   * Send a friend request.
-   */
   sendFriendRequest: async (targetId: string, message: string = "Hi! Let's be friends."): Promise<APIResource<void>> => {
     const response = await api.post<APIResource<void>>('rs/friend-requests/send', { targetUserId: targetId, message });
     return response.data;
@@ -59,6 +61,14 @@ export const RelationshipService = {
   },
 
   /**
+   * Cancel a friend request (sender side).
+   */
+  cancelFriendRequest: async (requestId: string): Promise<APIResource<void>> => {
+    const response = await api.post<APIResource<void>>(`rs/friend-requests/cancel/${requestId}`);
+    return response.data;
+  },
+
+  /**
    * Unfriend a user.
    */
   unfriend: async (targetId: string): Promise<APIResource<void>> => {
@@ -66,10 +76,7 @@ export const RelationshipService = {
     return response.data;
   },
 
-  /**
-   * Block a user.
-   * Note: Backend reads reason and notes as @RequestParam.
-   */
+
   block: async (targetId: string, reason: BlockReason = 'OTHER', notes: string = ''): Promise<APIResource<void>> => {
     const params = new URLSearchParams();
     if (reason) params.append('reason', reason);
@@ -79,17 +86,12 @@ export const RelationshipService = {
     return response.data;
   },
 
-  /**
-   * Unblock a user.
-   */
+
   unblock: async (targetId: string): Promise<APIResource<void>> => {
     const response = await api.delete<APIResource<void>>(`rs/blocks/${targetId}`);
     return response.data;
   },
 
-  /**
-   * Get paged list of friends.
-   */
   getFriendsPage: async (userId: string, page: number = 0, size: number = 20): Promise<APIResource<PageResponse<RelationshipUserSummaryResponse>>> => {
     const response = await api.get<APIResource<PageResponse<RelationshipUserSummaryResponse>>>(
       `rs/relationships/friends/${userId}/page`, 
@@ -98,9 +100,6 @@ export const RelationshipService = {
     return response.data;
   },
 
-  /**
-   * Get paged list of followers.
-   */
   getFollowersPage: async (userId: string, page: number = 0, size: number = 20): Promise<APIResource<PageResponse<RelationshipUserSummaryResponse>>> => {
     const response = await api.get<APIResource<PageResponse<RelationshipUserSummaryResponse>>>(
       `rs/relationships/followers/${userId}/page`, 

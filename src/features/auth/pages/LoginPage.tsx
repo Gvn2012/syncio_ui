@@ -52,12 +52,13 @@ export const LoginPage: React.FC = () => {
       });
 
       if (response.success && response.data) {
-        const { userId, userRole, accessToken, username, orgId } = response.data as any;
+        const { userId, userRole, accessToken, refreshToken, username, orgId } = response.data as any;
         dispatch(setUser({
           id: userId,
           username: username || formData.username,
           role: userRole as String[],
           token: accessToken,
+          rtoken: refreshToken,
           orgId
         }));
         navigate('/');

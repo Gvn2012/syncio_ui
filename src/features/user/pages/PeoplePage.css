@@ -181,8 +181,16 @@
   overflow: hidden;
 }
 
-.person-avatar-link img,
+.person-avatar-link img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
 .request-header img {
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-full);
   object-fit: cover;
 }
@@ -439,11 +447,11 @@
 .req-btn-v2.cancel {
   background: transparent;
   color: #f87171; /* Brighter red for visibility in dark mode */
-  border: 1px solid transparent;
+  border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
 .req-btn-v2.cancel:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.08);
   border-color: #f87171;
 }
  

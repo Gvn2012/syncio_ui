@@ -50,6 +50,15 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId,
       className={className}
       onError={handleImageError}
       loading="lazy"
+      width={size}
+      height={size}
+      style={{ 
+        width: size, 
+        height: size, 
+        objectFit: 'cover', 
+        borderRadius: '50%',
+        flexShrink: 0
+      }}
     />
   );
 

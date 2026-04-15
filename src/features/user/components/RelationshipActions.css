@@ -32,13 +32,25 @@
 }
 
 .decline-btn {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--error, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171; /* Brighter red for visibility in dark mode */
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .decline-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #f87171;
+}
+
+.cancel-request-btn {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.cancel-request-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #f87171;
 }
 
 .pending-btn {
