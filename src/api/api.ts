@@ -2,12 +2,28 @@ import axios from 'axios';
 import { store } from '../store';
 import { setUser, logout } from '../store/slices/userSlice';
 
+const REFRESH_ENDPOINT:string = 'http://syncio.site/api/v1/auth/refresh';
+
 const api = axios.create({
   baseURL: 'http://syncio.site/api/v1/',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 api.interceptors.request.use(
   (config) => {
@@ -32,20 +48,6 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-let isRefreshing = false;
-let failedQueue: any[] = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
 
 api.interceptors.response.use(
   (response) => response,
@@ -87,10 +89,10 @@ api.interceptors.response.use(
             throw new Error("No refresh token");
         }
 
-        const refreshRes = await axios.post('http://syncio.site/api/v1/auth/refresh', { refreshToken: rtoken });
+        const refreshRes = await axios.post(REFRESH_ENDPOINT, { refreshToken: rtoken });
         if (refreshRes.data && refreshRes.data.success && refreshRes.data.data) {
            const { accessToken, refreshToken, userRole } = refreshRes.data.data;
-           
+
            const currentUser = store.getState().user;
            store.dispatch(setUser({
              id: currentUser.id!,
