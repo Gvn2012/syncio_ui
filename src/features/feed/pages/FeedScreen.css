@@ -59,6 +59,12 @@
   width: 100%;
   font-size: 13px;
   color: var(--text-main);
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .action-btn {
@@ -88,16 +94,15 @@
 
 .feed-container {
   display: grid;
-  /* 1fr correctly expands while fixed 280px sidebar stays consistent */
   grid-template-columns: 1fr 280px; 
-  gap: 20px; /* Slight increase for fluid feel */
+  gap: 20px;
   width: 100%;
 }
 
 .feed-main {
   display: flex;
   flex-direction: column;
-  padding-top: 2px; /* Prevent first item hover border clipping */
+  padding-top: 2px;
 }
 
 .feed-sidebar {

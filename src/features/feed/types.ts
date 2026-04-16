@@ -84,7 +84,10 @@ export interface PostAnnouncement {
 export interface PostMediaAttachment {
   id: string;
   url: string;
+  uploadUrl?: string;
+  fileName?: string;
   type: string;
+  position?: number;
 }
 
 export interface Post extends AuditableEntity {

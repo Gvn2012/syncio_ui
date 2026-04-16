@@ -3,15 +3,12 @@ import type { APIResource } from '../../../api/types/api-resource';
 import type { 
   GetFeedRequest, 
   GetFeedResponse, 
-  CreatePostRequest,
-  CreatePostResponse 
+  CreatePostRequest
 } from './types';
+import type { Post } from '../types';
 
 export const FeedService = {
-  /**
-   * Fetch the activity feed.
-   * URI: GET http://syncio.site/api/v1/feed
-   */
+
   getFeed: async (params: GetFeedRequest): Promise<APIResource<GetFeedResponse>> => {
     const query = new URLSearchParams();
     if (params.page) query.append('page', params.page.toString());
@@ -23,12 +20,24 @@ export const FeedService = {
     return response.data;
   },
 
-  /**
-   * Create a new post.
-   * URI: POST http://syncio.site/api/v1/feed/posts
-   */
-  createPost: async (data: CreatePostRequest): Promise<APIResource<CreatePostResponse>> => {
-    const response = await api.post<APIResource<CreatePostResponse>>('feed/posts', data);
+
+  createPost: async (data: CreatePostRequest): Promise<APIResource<Post>> => {
+    const response = await api.post<APIResource<Post>>('posts', data);
     return response.data;
+  },
+
+
+  uploadFile: async (uploadUrl: string, file: File): Promise<void> => {
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`GCS upload failed: ${response.statusText}`);
+    }
   }
 };

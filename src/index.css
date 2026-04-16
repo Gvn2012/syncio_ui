@@ -30,7 +30,6 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
 
-  /* Semantic Colors */
   --error: #ef4444;
   --success: #22c55e;
   --warning: #f59e0b;
@@ -46,7 +45,7 @@
   --bg-header-glass: rgba(15, 23, 42, 0.8);
   --bg-search: #334155;
   --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
+  --text-muted: #cbd5e1; 
   --text-sidebar: #94a3b8;
   --text-sidebar-active: #ffffff;
   --border-color: #334155;
@@ -61,6 +60,7 @@
 
 html {
   height: 100%;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -74,6 +74,30 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+  border: 2px solid var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-main);
 }
 
 button {
@@ -95,11 +119,166 @@ ul {
   list-style: none;
 }
 
-input {
-  border: none;
-  outline: none;
-  background: none;
+/* Premium Global Form Elements */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="datetime-local"],
+textarea,
+select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
   font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.2s var(--transition-bezier);
+  outline: none;
+}
+
+[data-theme='dark'] input[type="text"],
+[data-theme='dark'] input[type="number"],
+[data-theme='dark'] input[type="date"],
+[data-theme='dark'] input[type="datetime-local"],
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+input:focus, 
+textarea:focus, 
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px -8px var(--primary-alpha-20), 0 0 0 4px var(--primary-alpha-10);
+  background: var(--bg-card);
+  transform: translateY(-1px);
+}
+
+[data-theme='dark'] input:focus,
+[data-theme='dark'] textarea:focus,
+[data-theme='dark'] select:focus {
+  background-color: rgba(30, 41, 59, 0.7);
+  border-color: var(--primary);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 4px var(--primary-alpha-10);
+}
+
+/* Number Input Optimization */
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+
+/* Hide Number Input Spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Premium Date/Time Input */
+input[type="date"],
+input[type="datetime-local"] {
+  color-scheme: light; /* Default */
+  position: relative;
+}
+
+[data-theme='dark'] input[type="date"],
+[data-theme='dark'] input[type="datetime-local"] {
+  color-scheme: dark; /* CRITICAL: Forces native picker into dark mode */
+}
+
+::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 5px;
+  filter: opacity(0.5);
+  transition: filter 0.2s;
+}
+
+::-webkit-calendar-picker-indicator:hover {
+  filter: opacity(1) invert(0.5) sepia(1) saturate(5) hue-rotate(175deg); /* Match primary theme */
+}
+
+/* Custom Select Arrow */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+[data-theme='dark'] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* Premium Checkboxes & Radios */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--border-color);
+  background: var(--bg-main);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+}
+
+input[type="checkbox"] {
+  border-radius: 4px;
+}
+
+input[type="radio"] {
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-alpha-20);
+}
+
+input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-size: 80%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+input[type="radio"]::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  background-color: white;
+}
+
+input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
 }
 
 /* Layout Classes */
@@ -120,16 +299,15 @@ input {
 
 .page-container {
   flex: 1;
-  overflow-y: scroll; /* Use scroll instead of auto to ensure consistent layer creation */
-  padding: 16px; /* Reduced from 24px for higher density */
+  overflow-y: scroll; 
+  padding: 16px; 
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: auto; /* Instant scroll response */
-  backface-visibility: hidden; /* Prevent flicker */
-  transform: translateZ(0); /* Force GPU composite layer */
+  scroll-behavior: auto; 
+  backface-visibility: hidden; 
+  transform: translateZ(0); 
   will-change: scroll-position;
 }
 
-/* Animations */
 @keyframes spin {
   from {
     transform: rotate(0deg);

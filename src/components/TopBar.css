@@ -46,10 +46,13 @@
   width: 100%;
   font-size: 14px;
   color: var(--text-main);
-  background: transparent;
-  border: none;
-  outline: none;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
   height: 100%;
+  padding: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .clear-search-btn {

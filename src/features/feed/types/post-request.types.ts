@@ -14,42 +14,55 @@ export enum PostPriority {
 }
 
 export interface MediaAttachmentRequest {
+  externalId?: string | null;
+  url?: string | null;
+  caption?: string;
+  altText?: string;
+  position: number;
+  type: 'IMAGE' | 'VIDEO' | 'FILE' | 'MIXED';
+  mimeType: string;
+  sizeBytes: number;
   fileName: string;
-  fileType: string;
-  fileUrl: string;
-  fileSize: number;
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
 }
 
 export interface PostCreateRequest {
-  content: string;
+  content?: string;
   contentHtml?: string;
   excerpt?: string;
-  language?: string;
+  language: string;
   postCategory: PostCategory;
   visibility: PostVisibility;
-  orgId: string;
-  attachments?: MediaAttachmentRequest[];
+  orgId: string | null;
   mentions?: string[]; // UUID strings
   tags?: string[];
   metadata?: string; // JSON string
-  latitude?: number;
-  longitude?: number;
-  watchers?: string[]; // For Tasks
-  coOrganizers?: string[]; // For Events
+  
+  // Polymorphic Extensions
+  event?: PostEventRequest | null;
+  poll?: PostPollRequest | null;
+  task?: PostTaskRequest | null;
+  announcement?: PostAnnouncementRequest | null;
+  
+  attachments?: MediaAttachmentRequest[];
 }
 
 export interface PostEventRequest {
   title: string;
   description?: string;
-  startAt: string; // ISO string
-  endAt: string; // ISO string
-  isAllDay: boolean;
-  locationName?: string;
+  location?: string;
+  startTime: string; // ISO string
+  endTime: string; // ISO string
+  isVirtual: boolean;
+  joinUrl?: string;
+  maxParticipants?: number;
 }
 
 export interface PostTaskRequest {
   title: string;
-  description: string;
+  description?: string;
   priority: PostPriority;
   dueAt: string; // ISO string
   assignees: string[]; // UUID strings
@@ -57,7 +70,7 @@ export interface PostTaskRequest {
 
 export interface PollOptionRequest {
   optionText: string;
-  displayOrder: number;
+  position: number;
 }
 
 export interface PostPollRequest {
@@ -68,18 +81,9 @@ export interface PostPollRequest {
   options: PollOptionRequest[];
 }
 
-export enum AnnouncementScope {
-  ORGANIZATION = 'ORGANIZATION',
-  DEPARTMENT = 'DEPARTMENT',
-  TEAM = 'TEAM'
-}
-
 export interface PostAnnouncementRequest {
   priority: PostPriority;
   isPinned: boolean;
   pinnedUntil?: string; // ISO string
   requiresAcknowledgement: boolean;
-  scope: AnnouncementScope;
-  title?: string;
-  content?: string; // Content for structured announcements
 }

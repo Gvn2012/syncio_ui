@@ -47,11 +47,15 @@ const uiSlice = createSlice({
     setLightboxImage: (state, action: PayloadAction<string | null>) => {
       state.activeLightboxImage = action.payload;
     },
-    showError: (state, action: PayloadAction<string>) => {
+    showError: (state, action: PayloadAction<string | { message: string; title?: string }>) => {
       if (!state.alert) state.alert = { ...initialState.alert };
-      state.alert.message = action.payload;
+      const payload = typeof action.payload === 'string' 
+        ? { message: action.payload, title: 'SYSTEM ERROR' } 
+        : { message: action.payload.message, title: action.payload.title || 'SYSTEM ERROR' };
+      
+      state.alert.message = payload.message;
+      state.alert.title = payload.title;
       state.alert.type = 'error';
-      state.alert.title = 'AUTHENTICATION ERROR';
       state.alert.isVisible = true;
     },
     showSuccess: (state, action: PayloadAction<string>) => {
@@ -88,6 +92,6 @@ export const {
   hideAlert
 } = uiSlice.actions;
 
-// Keep exports for backward compatibility if needed, though they'll be deprecated
+
 export const hideError = hideAlert;
 export default uiSlice.reducer;

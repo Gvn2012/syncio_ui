@@ -1,4 +1,5 @@
 import type { Post } from '../types';
+import type { PostCreateRequest } from '../types/post-request.types';
 
 export interface GetFeedRequest {
   page?: number;
@@ -14,12 +15,7 @@ export interface GetFeedResponse {
   totalPages: number;
 }
 
-export interface CreatePostRequest {
-  content: string;
-  category: string;
-  visibility: string;
-  attachments?: { url: string; type: string }[];
-}
+export type CreatePostRequest = PostCreateRequest;
 
 export interface CreatePostResponse {
   post: Post;

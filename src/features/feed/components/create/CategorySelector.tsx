@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { PostCategory } from '../../types';
 
+import { motion } from 'framer-motion';
+
 interface CategorySelectorProps {
   selected: PostCategory;
   onSelect: (category: PostCategory) => void;
@@ -33,13 +35,20 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({ selected, on
             key={cat.id}
             className={`category-pill ${isActive ? 'active' : ''}`}
             onClick={() => onSelect(cat.id)}
-            style={{ 
-              '--active-color': cat.color,
-              '--pill-bg': isActive ? `rgba(${cat.id === PostCategory.NORMAL ? '37, 150, 190' : '0,0,0'}, 0.08)` : 'transparent'
-            } as React.CSSProperties}
+            style={{ '--active-color': cat.color } as React.CSSProperties}
           >
-            <Icon size={18} color={isActive ? cat.color : 'var(--text-muted)'} />
-            <span>{cat.label}</span>
+            {isActive && (
+              <motion.div
+                layoutId="active-category-pill"
+                className="category-active-bg"
+                initial={false}
+                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              />
+            )}
+            <div className="category-pill-content">
+              <Icon size={18} color={isActive ? cat.color : 'var(--text-muted)'} />
+              <span>{cat.label}</span>
+            </div>
           </button>
         );
       })}

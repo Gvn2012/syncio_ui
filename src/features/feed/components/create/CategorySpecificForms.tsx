@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { 
   Plus, 
   Trash2, 
   Calendar, 
-  AlertCircle,
-  Search,
-  Users,
-  X
+  Clock,
+  AlertCircle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PostCategory } from '../../types';
-import { PostPriority, AnnouncementScope } from '../../types/post-request.types';
-import { mockDepartments, mockTeams } from '../../data';
+import { PostPriority } from '../../types/post-request.types';
 
 interface Props {
   category: PostCategory;
@@ -19,11 +17,28 @@ interface Props {
 }
 
 export const CategorySpecificForms: React.FC<Props> = ({ category, data, onChange }) => {
+  const [focusedField, setFocusedField] = React.useState<string | null>(null);
+
   if (category === PostCategory.NORMAL) return null;
 
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
   };
+
+  const SelectionHint: React.FC<{ id: string; text: string; hasValue: boolean }> = ({ id, text, hasValue }) => (
+    <AnimatePresence>
+      {(focusedField !== id && hasValue) && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, height: 0 }}
+          animate={{ opacity: 1, scale: 1, height: 'auto' }}
+          exit={{ opacity: 0, scale: 0.95, height: 0 }}
+          className="context-info-hint selection-summary"
+        >
+          <div className="hint-text">{text}</div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   const renderTaskForm = () => (
     <div className="specific-form task-form">
@@ -43,7 +58,10 @@ export const CategorySpecificForms: React.FC<Props> = ({ category, data, onChang
           <input 
             type="datetime-local" 
             value={data.dueAt || ''}
+            min={new Date().toISOString().slice(0, 16)}
             onChange={(e) => updateField('dueAt', e.target.value)}
+            onFocus={() => setFocusedField('dueAt')}
+            onBlur={() => setFocusedField(null)}
           />
         </div>
         <div className="form-group half">
@@ -51,11 +69,20 @@ export const CategorySpecificForms: React.FC<Props> = ({ category, data, onChang
           <select 
             value={data.priority || PostPriority.MEDIUM}
             onChange={(e) => updateField('priority', e.target.value)}
+            onFocus={() => setFocusedField('prio-task')}
+            onBlur={() => setFocusedField(null)}
           >
             {Object.values(PostPriority).map(p => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
+          <SelectionHint 
+            id="prio-task" 
+            text={(data.priority === PostPriority.HIGH || data.priority === PostPriority.CRITICAL) 
+              ? "• High/Critical will trigger push notification to assignees."
+              : `${data.priority || 'Medium'} priority selects designated alert level.`}
+            hasValue={true} 
+          />
         </div>
       </div>
     </div>
@@ -108,169 +135,68 @@ export const CategorySpecificForms: React.FC<Props> = ({ category, data, onChang
   };
 
   const renderAnnouncementForm = () => {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-    const unifiedPool = useMemo(() => [
-      ...mockDepartments.map(d => ({ ...d, id: d.id, name: d.name, type: 'DEPT', code: (d as any).code })),
-      ...mockTeams.map(t => ({ ...t, id: t.id, name: t.name, type: 'TEAM' }))
-    ], []);
-
-    const filteredTargets = useMemo(() => {
-      const query = searchQuery.toLowerCase();
-      if (!query) return [];
-      return unifiedPool.filter(t => t.name.toLowerCase().includes(query));
-    }, [searchQuery, unifiedPool]);
-
-    const selectedTargets = data.targets || [];
-
-    const handleSelectTarget = (target: any) => {
-      if (selectedTargets.some((t: any) => t.id === target.id)) return;
-      
-      onChange({ 
-        ...data, 
-        targets: [...selectedTargets, { id: target.id, name: target.name, type: target.type }] 
-      });
-      setSearchQuery('');
-    };
-
-    const handleRemoveTarget = (id: string) => {
-      onChange({ 
-        ...data, 
-        targets: selectedTargets.filter((t: any) => t.id !== id) 
-      });
-    };
-
     return (
       <div className="specific-form announcement-form structured">
         <h3>Official Announcement Setup</h3>
-        <div className="form-group">
-          <label>Announcement Title</label>
-          <input 
-            type="text" 
-            placeholder="e.g. Q3 Financial Update, Office Relocation..."
-            value={data.title || ''}
-            onChange={(e) => updateField('title', e.target.value)}
-          />
-        </div>
+        
         <div className="form-row">
-          <div className="form-group half">
-            <label>Visibility Scope</label>
-            <select 
-              value={data.scope || AnnouncementScope.ORGANIZATION}
-              onChange={(e) => {
-                onChange({
-                  ...data,
-                  scope: e.target.value,
-                  targets: []
-                });
-              }}
-            >
-              <option value={AnnouncementScope.ORGANIZATION}>Entire Organization</option>
-              <option value={AnnouncementScope.DEPARTMENT}>Targeted Communication</option>
-            </select>
-          </div>
-          <div className="form-group half">
+          <div className="form-group full">
             <label><AlertCircle size={14} /> Priority Level</label>
             <select 
               value={data.priority || PostPriority.MEDIUM}
               onChange={(e) => updateField('priority', e.target.value)}
+              onFocus={() => setFocusedField('prio-announcement')}
+              onBlur={() => setFocusedField(null)}
             >
               <option value={PostPriority.LOW}>Information</option>
               <option value={PostPriority.MEDIUM}>Standard</option>
               <option value={PostPriority.HIGH}>Important</option>
               <option value={PostPriority.CRITICAL}>Urgent</option>
             </select>
+            <SelectionHint 
+              id="prio-announcement" 
+              text={(data.priority === PostPriority.HIGH || data.priority === PostPriority.CRITICAL) 
+                ? "• High/Critical will trigger push notification to assignees."
+                : `Priority set to ${data.priority || 'Medium'}. High/Urgent pins to feed.`} 
+              hasValue={true} 
+            />
           </div>
         </div>
 
-        {/* Dynamic Target Selection (Multi-select) */}
-        {data.scope === AnnouncementScope.DEPARTMENT && (
-          <div className="form-group target-selector-group multiselect">
-            <label>Recipient Departments & Teams</label>
-            
-            {selectedTargets.length > 0 && (
-              <div className="selected-targets-tray">
-                {selectedTargets.map((target: any) => (
-                  <span key={target.id} className="target-pill-interactive">
-                    <span className={`type-badge-mini ${target.type}`}>{target.type}</span>
-                    <span className="name">{target.name}</span>
-                    <button onClick={() => handleRemoveTarget(target.id)} className="pill-remove">
-                      <X size={10} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="target-search-container">
-              <div className="target-search-input-wrapper">
-                <Search size={14} />
-                <input 
-                  type="text" 
-                  placeholder="Type to add departments or teams..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setIsDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsDropdownOpen(true)}
-                />
-              </div>
-              
-              {isDropdownOpen && (searchQuery || filteredTargets.length > 0) && (
-                <div className="target-results-dropdown shadow-xl">
-                  {filteredTargets.map(target => (
-                    <button 
-                      key={target.id}
-                      className="target-result-item"
-                      onClick={() => handleSelectTarget(target)}
-                    >
-                      <div className="item-left-content">
-                        <Users size={14} className="type-icon" />
-                        <div className="target-info">
-                          <span className="target-name">{target.name}</span>
-                          <span className={`target-type-label ${target.type}`}>
-                            {target.type === 'DEPT' ? 'Department' : 'Team'}
-                          </span>
-                        </div>
-                      </div>
-                      {selectedTargets.some((t: any) => t.id === target.id) && (
-                        <span className="already-added">Added</span>
-                      )}
-                    </button>
-                  ))}
-                  {filteredTargets.length === 0 && searchQuery && (
-                    <div className="target-no-results">No entities found for "{searchQuery}"</div>
-                  ) }
-                </div>
-              )}
-            </div>
-            {isDropdownOpen && <div className="target-dropdown-backdrop" onClick={() => setIsDropdownOpen(false)} />}
-          </div>
-        )}
-
-        <div className="form-group">
-          <label>Official Statement Body</label>
-          <textarea 
-            className="announcement-content"
-            placeholder="Detailed official communication content..."
-            value={data.content || ''}
-            onChange={(e) => updateField('content', e.target.value)}
-            rows={6}
-          />
-        </div>
         <div className="form-footer-options">
           <label className="checkbox-group">
             <input 
               type="checkbox" 
-              id="req-ack"
               checked={data.requiresAcknowledgement || false}
               onChange={(e) => updateField('requiresAcknowledgement', e.target.checked)}
             />
             <span>Requires Mandatory Acknowledgment</span>
           </label>
+          
+          <label className="checkbox-group">
+            <input 
+              type="checkbox" 
+              checked={data.isPinned || false}
+              onChange={(e) => updateField('isPinned', e.target.checked)}
+            />
+            <span>Pin this Announcement</span>
+          </label>
         </div>
+
+        {data.isPinned && (
+          <div className="form-group animated-entry">
+            <label>Auto-unpin After</label>
+            <input 
+              type="datetime-local" 
+              value={data.unpinAt || ''}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => updateField('unpinAt', e.target.value)}
+              onFocus={() => setFocusedField('unpinAt')}
+              onBlur={() => setFocusedField(null)}
+            />
+            <SelectionHint id="unpinAt" text="• Auto-unpin scheduled. Announcement will move to standard feed." hasValue={!!data.unpinAt} />
+          </div>
+        )}
       </div>
     );
   };
@@ -279,7 +205,7 @@ export const CategorySpecificForms: React.FC<Props> = ({ category, data, onChang
     <div className="specific-form event-form">
       <h3>Sync New Event</h3>
       <div className="form-group">
-        <label>Event Name</label>
+        <label>Event Title</label>
         <input 
           type="text" 
           placeholder="e.g. Weekly Standup, Product Launch..."
@@ -287,34 +213,89 @@ export const CategorySpecificForms: React.FC<Props> = ({ category, data, onChang
           onChange={(e) => updateField('title', e.target.value)}
         />
       </div>
+      <div className="form-group">
+        <label>Description (Optional)</label>
+        <textarea 
+          placeholder="Provide more details about the event..."
+          value={data.description || ''}
+          onChange={(e) => updateField('description', e.target.value)}
+          rows={2}
+        />
+      </div>
+      
       <div className="form-row">
         <div className="form-group half">
-          <label><Calendar size={14} /> Start {data.isAllDay ? 'Date' : 'Time'}</label>
+          <label><Calendar size={14} /> Start Time</label>
           <input 
-            type={data.isAllDay ? "date" : "datetime-local"} 
-            value={data.startAt || ''}
-            onChange={(e) => updateField('startAt', e.target.value)}
+            type="datetime-local" 
+            value={data.startTime || ''}
+            min={new Date().toISOString().slice(0, 16)}
+            onChange={(e) => updateField('startTime', e.target.value)}
+            onFocus={() => setFocusedField('startTime')}
+            onBlur={() => setFocusedField(null)}
+          />
+          <SelectionHint id="startTime" text="• Sync scheduled. Active for targeted audience." hasValue={!!data.startTime} />
+        </div>
+        <div className="form-group half">
+          <label><Clock size={14} /> End Time</label>
+          <input 
+            type="datetime-local" 
+            value={data.endTime || ''}
+            min={data.startTime || new Date().toISOString().slice(0, 16)}
+            onChange={(e) => updateField('endTime', e.target.value)}
+            onFocus={() => setFocusedField('endTime')}
+            onBlur={() => setFocusedField(null)}
+          />
+          <SelectionHint id="endTime" text="• Conclusion time set. Will move to archives." hasValue={!!data.endTime} />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group half">
+          <label>Location / Venue</label>
+          <input 
+            type="text" 
+            placeholder="e.g. Room 402, Zoom Link..."
+            value={data.location || ''}
+            onChange={(e) => updateField('location', e.target.value)}
           />
         </div>
         <div className="form-group half">
-          <label><Calendar size={14} /> End {data.isAllDay ? 'Date' : 'Time'}</label>
+          <label>Max Participants</label>
           <input 
-            type={data.isAllDay ? "date" : "datetime-local"} 
-            value={data.endAt || ''}
-            onChange={(e) => updateField('endAt', e.target.value)}
+            type="number" 
+            placeholder="No limit"
+            value={data.maxParticipants || ''}
+            onChange={(e) => updateField('maxParticipants', e.target.value ? parseInt(e.target.value) : undefined)}
+            onFocus={() => setFocusedField('maxParticipants')}
+            onBlur={() => setFocusedField(null)}
           />
+          <SelectionHint id="maxParticipants" text={`• Attendance limited to ${data.maxParticipants}.`} hasValue={!!data.maxParticipants} />
         </div>
       </div>
+
       <div className="form-footer-options">
-        <label className="checkbox-group">
-          <input 
-            type="checkbox" 
-            id="all-day-check"
-            checked={data.isAllDay || false}
-            onChange={(e) => updateField('isAllDay', e.target.checked)}
-          />
-          <span>All-day Event</span>
-        </label>
+        <div className="toggle-group-modern">
+          <label className="checkbox-group">
+            <input 
+              type="checkbox" 
+              checked={data.isVirtual || false}
+              onChange={(e) => updateField('isVirtual', e.target.checked)}
+            />
+            <span>Virtual Event</span>
+          </label>
+          
+          {data.isVirtual && (
+            <div className="nested-input animated-entry">
+               <input 
+                type="text" 
+                placeholder="Meeting Link (Zoom, Teams, etc.)"
+                value={data.joinUrl || ''}
+                onChange={(e) => updateField('joinUrl', e.target.value)}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
