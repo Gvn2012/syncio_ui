@@ -24,7 +24,6 @@ export const LoginPage: React.FC = () => {
   
   const isWorkspace = location.pathname === '/login/org';
 
-  // State
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -52,28 +51,21 @@ export const LoginPage: React.FC = () => {
       });
 
       if (response.success && response.data) {
-        const { userId, userRole, accessToken, refreshToken, username, orgId } = response.data as any;
+        const { userId, userRole, username, orgId } = response.data as any;
         dispatch(setUser({
           id: userId,
           username: username || formData.username,
           role: userRole as String[],
-          token: accessToken,
-          rtoken: refreshToken,
           orgId
         }));
         navigate('/');
       } else {
         setErrorMsg(
-          response.error?.message ||
-          response.message ||
           'Verification failed. Please check your credentials.'
         );
       }
     } catch (err: any) {
       setErrorMsg(
-          err.response?.data?.error?.message ||
-          err.response?.data?.message ||
-          err.message ||
         'Unauthorized access. Please check your credentials.'
       );
     } finally {

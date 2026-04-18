@@ -2,13 +2,14 @@ import axios from 'axios';
 import { store } from '../store';
 import { setUser, logout } from '../store/slices/userSlice';
 
-const REFRESH_ENDPOINT:string = 'http://syncio.site/api/v1/auth/refresh';
+const REFRESH_ENDPOINT:string = '/api/v1/auth/refresh';
 
 const api = axios.create({
-  baseURL: 'http://syncio.site/api/v1/',
+  baseURL: '/api/v1/',
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -33,16 +34,13 @@ api.interceptors.request.use(
         const root = JSON.parse(persisted);
         if (root.user) {
           const user = JSON.parse(root.user);
-          if (user.token) {
-            config.headers.Authorization = `Bearer ${user.token}`;
-          }
           if (user.id) {
             config.headers['X-User-Id'] = user.id;
           }
         }
       }
     } catch (e) {
-      console.warn('Could not extract token from storage', e);
+      console.warn('Could not extract user details from storage', e);
     }
     return config;
   },
@@ -61,10 +59,9 @@ api.interceptors.response.use(
 
       if (isRefreshing) {
         try {
-          const token = await new Promise((resolve, reject) => {
+          await new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           });
-          originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         } catch (err) {
           return Promise.reject(err);
@@ -75,36 +72,19 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const persisted = localStorage.getItem('persist:root');
-        let rtoken = null;
-        if (persisted) {
-          const root = JSON.parse(persisted);
-          if (root.user) {
-            const user = JSON.parse(root.user);
-            rtoken = user.rtoken;
-          }
-        }
-
-        if (!rtoken) {
-            throw new Error("No refresh token");
-        }
-
-        const refreshRes = await axios.post(REFRESH_ENDPOINT, { refreshToken: rtoken });
+        const refreshRes = await axios.post(REFRESH_ENDPOINT, {}, { withCredentials: true });
         if (refreshRes.data && refreshRes.data.success && refreshRes.data.data) {
-           const { accessToken, refreshToken, userRole } = refreshRes.data.data;
+           const { userRole } = refreshRes.data.data;
 
            const currentUser = store.getState().user;
            store.dispatch(setUser({
              id: currentUser.id!,
              username: currentUser.username!,
              role: userRole || currentUser.role,
-             token: accessToken,
-             rtoken: refreshToken,
              orgId: currentUser.orgId!
            }));
 
-           processQueue(null, accessToken);
-           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+           processQueue(null, null);
            return api(originalRequest);
         } else {
             throw new Error("Refresh failed");

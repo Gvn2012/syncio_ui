@@ -22,9 +22,9 @@ import { useLocation } from 'react-router-dom';
 import './App.css';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, token } = useSelector((state: RootState) => state.user);
+  const { isAuthenticated } = useSelector((state: RootState) => state.user);
   
-  if (!isAuthenticated || !token) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
@@ -32,9 +32,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, token } = useSelector((state: RootState) => state.user);
+  const { isAuthenticated } = useSelector((state: RootState) => state.user);
   
-  if (isAuthenticated && token) {
+  if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
   

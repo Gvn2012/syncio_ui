@@ -7,10 +7,8 @@ interface UserState {
   id: string | null;
   username: string | null;
   role: String[];
-  token: string | null;
   isAuthenticated: boolean;
   orgId: string | null;
-  rtoken: string | null;
   userDetail: UserDetailResponse | null;
   userDetailLoading: boolean;
   userDetailError: string | null;
@@ -20,8 +18,6 @@ const initialState: UserState = {
   id: null,
   username: null,
   role: [],
-  token: null,
-  rtoken: null,
   isAuthenticated: false,
   orgId: null,
   userDetail: null,
@@ -50,12 +46,10 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<{ id: string; username: string; role: String[]; token: string; rtoken: string; orgId: string }>) => {
+    setUser: (state, action: PayloadAction<{ id: string; username: string; role: String[]; orgId: string }>) => {
       state.id = action.payload.id;
       state.username = action.payload.username;
       state.role = action.payload.role;
-      state.token = action.payload.token;
-      state.rtoken = action.payload.rtoken;
       state.isAuthenticated = true;
       state.orgId = action.payload.orgId;
     },
@@ -63,8 +57,6 @@ const userSlice = createSlice({
       state.id = null;
       state.username = null;
       state.role = [];
-      state.token = null;
-      state.rtoken = null;
       state.isAuthenticated = false;
       state.orgId = null;
       state.userDetail = null;
