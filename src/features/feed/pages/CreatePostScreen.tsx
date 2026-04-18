@@ -115,6 +115,7 @@ export const CreatePostScreen: React.FC = () => {
   };
 
   useEffect(() => {
+     
     return () => {
       previews.forEach(url => URL.revokeObjectURL(url));
     };

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Layout } from '../../../components/Layout';
 import { FeedItem } from '../components/FeedItem';
 import { demoFeedItems } from '../data';
@@ -7,7 +6,8 @@ import './FeedScreen.css';
 import { Link } from 'react-router-dom';
 
 export const FeedScreen: React.FC = () => {
-  
+
+ 
   return (
     <Layout>
       <div className="feed-view">

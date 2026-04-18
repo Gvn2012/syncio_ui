@@ -24,3 +24,8 @@ export interface EmergencyContactData {
   email?: string;
   isPrimary?: boolean;
 }
+
+export interface Pagination {
+  page: number;
+  size: number;
+}

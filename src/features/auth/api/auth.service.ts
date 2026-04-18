@@ -11,19 +11,13 @@ import type {
 } from './types';
 
 export const authService = {
-  /**
-   * Send login credentials to the backend.
-   * URI: http://syncio.site/api/v1/users/login
-   */
+ 
   login: async (credentials: LoginRequest): Promise<APIResource<LoginResponse>> => {
     const response = await api.post<APIResource<LoginResponse>>('users/login', credentials);
     return response.data;
   },
   
-  /**
-   * Check if username or email is available.
-   * URI: http://syncio.site/api/v1/users/check-username-email-availability?email=&username=
-   */
+
   checkAvailability: async (email?: string, username?: string): Promise<APIResource<CheckAvailabilityResponse>> => {
     const query = new URLSearchParams();
     if (email) query.append('email', email);
@@ -35,39 +29,23 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * Step 1: Request an email verification code.
-   * URI: POST http://syncio.site/api/v1/users/email-verifications
-   */
   requestEmailVerification: async (email: string): Promise<APIResource<EmailVerificationResponse>> => {
     const request: EmailVerificationRequest = { email };
     const response = await api.post<APIResource<EmailVerificationResponse>>('users/email-verifications', request);
     return response.data;
   },
 
-  /**
-   * Step 2: Verify the 6-digit OTP code.
-   * URI: POST http://syncio.site/api/v1/users/email-verifications/{id}/verify
-   */
   verifyEmail: async (emailVerificationId: string, code: string): Promise<APIResource<any>> => {
     const request: VerifyEmailRequest = { code };
     const response = await api.post<APIResource<any>>(`users/email-verifications/${emailVerificationId}/verify`, request);
     return response.data;
   },
 
-  /**
-   * Step 3: Resend the OTP code.
-   * URI: POST http://syncio.site/api/v1/users/email-verifications/{id}/resend
-   */
   resendEmailVerification: async (emailVerificationId: string): Promise<APIResource<any>> => {
     const response = await api.post<APIResource<any>>(`users/email-verifications/${emailVerificationId}/resend`);
     return response.data;
   },
-  
-  /**
-   * Step 4: Final account registration.
-   * URI: POST http://syncio.site/api/v1/users/register
-   */
+
   register: async (userData: RegisterRequest): Promise<APIResource<any>> => {
     const response = await api.post<APIResource<any>>('users/register', userData);
     return response.data;
