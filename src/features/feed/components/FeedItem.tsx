@@ -1,72 +1,67 @@
+import React from 'react';
 import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  MoreHorizontal, 
   CheckSquare, 
   Calendar,
-  Sparkles,
   BarChart3,
-  Megaphone
 } from 'lucide-react';
 import { PostCategory, TaskStatus } from '../types';
 import type { Post as PostType } from '../types';
 import { useFormatDate } from '../../../common/hooks/useFormatDate';
-import { UserAvatar } from '../../../components/UserAvatar';
+import { PostHeader } from './sub/PostHeader';
+import { PostContent } from './sub/PostContent';
+import { MediaGallery } from './sub/MediaGallery';
+import { PostActions } from './sub/PostActions';
 import './FeedItem.css';
+
+import { useNavigate } from 'react-router-dom';
 
 interface FeedItemProps {
   post: PostType;
 }
 
-export const FeedItem: React.FC<FeedItemProps> = ({ post }) => {
+export const FeedItem: React.FC<FeedItemProps> = React.memo(({ post }) => {
+  const navigate = useNavigate();
   const isTask = post.postCategory === PostCategory.TASK;
   const isPoll = post.postCategory === PostCategory.POLL;
-  const isAnnouncement = post.postCategory === PostCategory.ANNOUNCEMENT;
   const { format } = useFormatDate();
 
-  const author = post.author || { name: 'Unknown', avatar: '', role: 'Member' };
-  const imageAttachment = post.attachments?.find(a => a.type === 'IMAGE');
+  const handleNavigate = (e: React.MouseEvent) => {
+    // Prevent navigation if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') || 
+      target.closest('a') || 
+      target.closest('.poll-option') || 
+      target.closest('.task-badge')
+    ) {
+      return;
+    }
+    navigate(`/sync/${post.id}`);
+  };
 
   return (
     <article className="feed-item">
-      {post.isPinned && (
-        <div className="curated-badge pinned">
-          <Sparkles size={12} />
-          <span>Pinned Update</span>
-        </div>
-      )}
+      <div className="clickable-content" onClick={handleNavigate}>
+        <PostHeader 
+          author={post.authorInfo}
+          publishedAt={post.publishedAt}
+          isPinned={post.isPinned}
+          isAnnouncement={post.postCategory === PostCategory.ANNOUNCEMENT}
+        />
 
-      {isAnnouncement && (
-        <div className="curated-badge announcement">
-          <Megaphone size={12} />
-          <span>Official Announcement</span>
+        <div className="feed-body">
+          <PostContent 
+            content={post.content}
+            contentHtml={post.contentHtml}
+            mentions={post.mentions}
+            tags={post.tags}
+          />
         </div>
-      )}
-
-      <header className="feed-item-header">
-        <div className="author-info">
-          <UserAvatar userId={post.authorId} className="author-avatar" size={40} />
-          <div className="author-details">
-            <h4>{author.name}</h4>
-            <p>{author.role || 'Member'}</p>
-          </div>
-        </div>
-        <div className="item-meta">
-          <span className="timestamp">{post.publishedAt}</span>
-          <button className="more-btn">
-            <MoreHorizontal size={18} color="var(--text-sidebar)" />
-          </button>
-        </div>
-      </header>
-
-      <div className="feed-content">
-        <p>{post.content}</p>
+      </div>
         
-        {imageAttachment && (
-          <img src={imageAttachment.url} alt="Post content" className="feed-image" />
-        )}
+      <MediaGallery attachments={post.attachments} />
 
+      <div className="feed-polymorphic-content">
         {isTask && post.task && (
           <div className="task-preview">
             <div className={`task-badge ${post.task.status === TaskStatus.COMPLETED ? 'completed' : ''}`}>
@@ -107,21 +102,13 @@ export const FeedItem: React.FC<FeedItemProps> = ({ post }) => {
         )}
       </div>
 
-      <footer className="feed-actions">
-        <button className={`action-btn ${post.isLiked ? 'active' : ''}`}>
-          <Heart size={18} fill={post.isLiked ? 'var(--primary)' : 'none'} />
-          <span>{post.likes}</span>
-        </button>
-        <button className="action-btn">
-          <MessageCircle size={18} />
-          <span>{post.comments}</span>
-        </button>
-        <button className="action-btn">
-          <Share2 size={18} />
-          <span>{post.shareCount}</span>
-        </button>
-      </footer>
+      <PostActions 
+        reactionCount={post.reactionCount}
+        commentCount={post.commentCount}
+        shareCount={post.shareCount}
+        viewerReaction={post.viewerReaction}
+        sharedByViewer={post.sharedByViewer}
+      />
     </article>
   );
-};
-
+});

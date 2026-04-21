@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Layout } from '../../../components/Layout';
 import { 
   Mail, 
   Phone, 
@@ -37,6 +36,7 @@ import type {
   UserDetailResponse
 } from '../types';
 import './ProfileScreen.css';
+import { formatDate } from '../../../common/utils/date';
 
 export const ProfileScreen: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
@@ -165,46 +165,40 @@ export const ProfileScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="profile-page">
-          <div className="profile-loading">
-            <div className="loading-spinner" />
-            <p>Loading profile...</p>
-          </div>
+      <div className="profile-page">
+        <div className="profile-loading">
+          <div className="loading-spinner" />
+          <p>Loading profile...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (isBlocked) {
     return (
-      <Layout>
-        <div className="profile-page">
-          <div className="profile-error">
-            <AlertTriangle size={48} color="var(--error)" />
-            <h3>Profile Restricted</h3>
-            <p>You cannot view this profile because one of you has blocked the other.</p>
-            <RelationshipActions targetId={userId!} onStatusChange={handleStatusChange} />
-          </div>
+      <div className="profile-page">
+        <div className="profile-error">
+          <AlertTriangle size={48} color="var(--error)" />
+          <h3>Profile Restricted</h3>
+          <p>You cannot view this profile because one of you has blocked the other.</p>
+          <RelationshipActions targetId={userId!} onStatusChange={handleStatusChange} />
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (hasError || !userDetail) {
     return (
-      <Layout>
-        <div className="profile-page">
-          <div className="profile-error">
-            <AlertTriangle size={48} color="var(--error)" />
-            <h3>Failed to load profile</h3>
-            <p>{externalError || 'User data not available'}</p>
-            <button className="retry-btn" onClick={() => userId && fetchExternalUser(userId)}>
-              Retry
-            </button>
-          </div>
+      <div className="profile-page">
+        <div className="profile-error">
+          <AlertTriangle size={48} color="var(--error)" />
+          <h3>Failed to load profile</h3>
+          <p>{externalError || 'User data not available'}</p>
+          <button className="retry-btn" onClick={() => userId && fetchExternalUser(userId)}>
+            Retry
+          </button>
         </div>
-      </Layout>
+      </div>
     );
   }
 
@@ -271,9 +265,8 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <Layout>
-      <div className="profile-page">
-        <header className="profile-header-section">
+    <div className="profile-page">
+      <header className="profile-header-section">
           <div className="profile-header-gradient" />
           <div className="profile-header-content">
             <div className="profile-avatar-container">
@@ -370,7 +363,7 @@ export const ProfileScreen: React.FC = () => {
                 {profile?.dateOfBirth && (
                   <div className="meta-chip">
                     <Calendar size={14} />
-                    <span>{profile.dateOfBirth || ''}</span>
+                    <span>{formatDate(profile.dateOfBirth) || ''}</span>
                   </div>
                 )}
                 <div className="meta-chip">
@@ -518,6 +511,5 @@ export const ProfileScreen: React.FC = () => {
           </main>
         </div>
       </div>
-    </Layout>
   );
 };

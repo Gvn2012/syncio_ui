@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Search, Plus, MoreVertical, Phone, Video, Smile, Paperclip, Users, ShieldAlert, Check, CheckCheck, Pin, PinOff, EyeOff, BellOff, Mail, Trash2, X } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { setLightboxImage } from '../../../store/slices/uiSlice';
-import { SideBar } from '../../../components/SideBar';
 import { mockConversations, mockMessages } from '../data';
 import { ConversationType } from '../types';
 import type { Conversation } from '../types';
@@ -213,8 +212,7 @@ export const MessagesPage: React.FC = () => {
   };
 
   return (
-    <div className="messages-container">
-      <SideBar />
+    <div className="messages-view-content"> 
       
       {/* Inbox Panel */}
       <div className="chat-list-panel">

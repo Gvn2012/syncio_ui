@@ -14,16 +14,16 @@ import {
   ShieldOff,
   UserCircle
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
-import { Layout } from '../../../components/Layout';
 import { RelationshipService } from '../api/relationship.service';
 import type { 
   RelationshipUserSummaryResponse, 
   PendingFriendRequestResponse,
-  PageResponse
 } from '../api/types';
+
+import type { PageResponse } from '../../../api/types/common-types';
 import type { RootState } from '../../../store';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
@@ -36,7 +36,9 @@ export const PeoplePage: React.FC = () => {
   const dispatch = useDispatch();
   const { id: currentUserId } = useSelector((state: RootState) => state.user);
   
-  const [activeTab, setActiveTab] = useState<TabType>('friends');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('v') as TabType) || 'friends';
+
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(12);
@@ -50,8 +52,6 @@ export const PeoplePage: React.FC = () => {
   const [pendingSentData, setPendingSentData] = useState<PageResponse<PendingFriendRequestResponse> | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   
-  // NOTE: Backend doesn't have paged following/blocked yet, so we'll store them as simple lists if needed
-  // or just use the currentUserId to get counts if possible.
   
   const fetchData = useCallback(async () => {
     if (!currentUserId) return;
@@ -114,7 +114,7 @@ export const PeoplePage: React.FC = () => {
   }, [currentUserId]);
  
   const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
+    setSearchParams({ v: tab });
     setPage(0);
   };
 
@@ -286,7 +286,7 @@ export const PeoplePage: React.FC = () => {
         return (
           <div className="people-grid-container">
             <div className="people-grid">
-              {friendsData.content.map(p => renderPersonCard(p, 'friend'))}
+              {friendsData.content.map((p: RelationshipUserSummaryResponse) => renderPersonCard(p, 'friend'))}
             </div>
             {renderPagination(friendsData)}
           </div>
@@ -297,7 +297,7 @@ export const PeoplePage: React.FC = () => {
         return (
           <div className="people-grid-container">
             <div className="people-grid">
-              {followersData.content.map(p => renderPersonCard(p, 'follower'))}
+              {followersData.content.map((p: RelationshipUserSummaryResponse) => renderPersonCard(p, 'follower'))}
             </div>
             {renderPagination(followersData)}
           </div>
@@ -344,14 +344,14 @@ export const PeoplePage: React.FC = () => {
                 </div>
                 <div className="request-actions-v2">
                   <button 
-                    className="req-btn-v2 accept" 
+                    className="req-btn-v2 accept"
                     onClick={() => handleAction(() => RelationshipService.acceptFriendRequest(req.requestId), "Friend request accepted")}
                   >
                     <Check size={18} />
                     <span>Accept</span>
                   </button>
-                  <button 
-                    className="req-btn-v2 decline" 
+                  <button
+                    className="req-btn-v2 decline"
                     onClick={() => handleAction(() => RelationshipService.declineFriendRequest(req.requestId), "Friend request declined")}
                   >
                     <X size={18} />
@@ -364,7 +364,7 @@ export const PeoplePage: React.FC = () => {
           </div>
         );
       case 'requests_sent':
-        if (!pendingSentData || pendingSentData.content.length === 0) 
+        if (!pendingSentData || pendingSentData.content.length === 0)
           return renderEmptyState(<UserPlus size={48} />, "No outcoming requests", "Send requests to start new friendships!");
         return (
           <div className="requests-stack">
@@ -401,56 +401,54 @@ export const PeoplePage: React.FC = () => {
   };
  
   return (
-    <Layout>
-      <div className="people-page">
-        <header className="people-header-v2">
-          <div className="header-bg-glow" />
-          <button className="back-btn-v2" onClick={() => navigate(-1)}>
-            <ArrowLeft size={20} />
-          </button>
-          <div className="header-content">
-            <h1>Dynamic Network</h1>
-            <p>Connect, discover, and build your social circle in real-time.</p>
-          </div>
-        </header>
- 
-        <nav className="people-tabs-v2">
-          {[
-            { id: 'friends', icon: <UserCheck size={18} />, label: 'Friends' },
-            { id: 'following', icon: <UserPlus size={18} />, label: 'Following' },
-            { id: 'followers', icon: <Users size={18} />, label: 'Followers' },
-            { id: 'requests_received', icon: <Clock size={18} />, label: 'Received', indicator: pendingReceivedData?.totalElements },
-            { id: 'requests_sent', icon: <Clock size={18} />, label: 'Sent' },
-            { id: 'blocked', icon: <ShieldOff size={18} />, label: 'Privacy' },
-          ].map(tab => (
-            <button 
-              key={tab.id}
-              className={`tab-btn-v2 ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => handleTabChange(tab.id as TabType)}
-            >
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="active-tab-indicator"
-                  className="tab-active-bg"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
+    <div className="people-page">
+      <header className="people-header-v2">
+        <div className="header-bg-glow" />
+        <button className="back-btn-v2" onClick={() => navigate(-1)}>
+          <ArrowLeft size={20} />
+        </button>
+        <div className="header-content">
+          <h1>Dynamic Network</h1>
+          <p>Connect, discover, and build your social circle in real-time.</p>
+        </div>
+      </header>
+
+      <nav className="people-tabs-v2">
+        {[
+          { id: 'friends', icon: <UserCheck size={18} />, label: 'Friends' },
+          { id: 'following', icon: <UserPlus size={18} />, label: 'Following' },
+          { id: 'followers', icon: <Users size={18} />, label: 'Followers' },
+          { id: 'requests_received', icon: <Clock size={18} />, label: 'Received', indicator: pendingReceivedData?.totalElements },
+          { id: 'requests_sent', icon: <Clock size={18} />, label: 'Sent' },
+          { id: 'blocked', icon: <ShieldOff size={18} />, label: 'Privacy' },
+        ].map(tab => (
+          <button 
+            key={tab.id}
+            className={`tab-btn-v2 ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => handleTabChange(tab.id as TabType)}
+          >
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="active-tab-indicator"
+                className="tab-active-bg"
+                initial={false}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span className="tab-content-z">
+              {tab.icon}
+              <span>{tab.label}</span>
+              {!!tab.indicator && tab.indicator > 0 && (
+                <span className="tab-indicator">{tab.indicator}</span>
               )}
-              <span className="tab-content-z">
-                {tab.icon}
-                <span>{tab.label}</span>
-                {!!tab.indicator && tab.indicator > 0 && (
-                  <span className="tab-indicator">{tab.indicator}</span>
-                )}
-              </span>
-            </button>
-          ))}
-        </nav>
- 
-        <section className="people-main-v2">
-          {renderTabContent()}
-        </section>
-      </div>
-    </Layout>
+            </span>
+          </button>
+        ))}
+      </nav>
+
+      <section className="people-main-v2">
+        {renderTabContent()}
+      </section>
+    </div>
   );
 };

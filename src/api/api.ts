@@ -2,7 +2,7 @@ import axios from 'axios';
 import { store } from '../store';
 import { setUser, logout } from '../store/slices/userSlice';
 
-const REFRESH_ENDPOINT:string = '/api/v1/auth/refresh';
+const REFRESH_ENDPOINT:string = 'auth/refresh';
 
 const api = axios.create({
   baseURL: '/api/v1/',
@@ -53,7 +53,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/generate-tokens')) {
+      if (originalRequest.url?.includes('auth/refresh') || originalRequest.url?.includes('auth/generate-tokens')) {
         return Promise.reject(error);
       }
 
@@ -72,7 +72,9 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshRes = await axios.post(REFRESH_ENDPOINT, {}, { withCredentials: true });
+     
+        const refreshRes = await api.post(REFRESH_ENDPOINT, {}, { _retry: true } as any);
+        
         if (refreshRes.data && refreshRes.data.success && refreshRes.data.data) {
            const { userRole } = refreshRes.data.data;
 

@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { type RootState } from '../../store';
-import { formatDate } from '../utils/date';
+import { formatDate, formatTimeAgo } from '../utils/date';
 
 /**
  * Custom hook that provides a date formatter function pre-configured with user preferences.
@@ -16,5 +16,13 @@ export const useFormatDate = () => {
     return formatDate(date, dateFormat, dateSeparator);
   };
 
-  return { format };
+  /**
+   * Formats a date relatively (e.g., "2h ago").
+   * @param date Date to format
+   */
+  const formatRelative = (date: string | Date) => {
+    return formatTimeAgo(date);
+  };
+
+  return { format, formatRelative };
 };

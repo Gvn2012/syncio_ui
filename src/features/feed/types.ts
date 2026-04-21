@@ -31,11 +31,16 @@ export enum TaskStatus {
   CANCELLED = 'CANCELLED'
 }
 
-export interface Author {
-  id: string; // UUID
-  name: string;
-  avatar: string;
-  role?: string;
+export interface AuthorInfo {
+  userId: string; // UUID
+  username: string;
+  displayName: string;
+  avatarUrl: string;
+  avatarPath?: string;
+  active: boolean;
+  suspended: boolean;
+  banned: boolean;
+  role?: string; // UI dynamic addition
 }
 
 export interface AuditableEntity {
@@ -82,18 +87,27 @@ export interface PostAnnouncement {
 }
 
 export interface PostMediaAttachment {
+  fileName: any;
   id: string;
   url: string;
   uploadUrl?: string;
-  fileName?: string;
-  type: string;
-  position?: number;
+  caption?: string;
+  altText?: string;
+  position: number;
+  type: 'IMAGE' | 'VIDEO' | 'FILE';
+  mimeType: string;
+  uploadStatus: 'PENDING' | 'SUCCESSFUL' | 'FAILED';
+  width?: number;
+  height?: number;
+  duration?: number;
+  uploadedAt?: string;
 }
 
 export interface Post extends AuditableEntity {
   postCategory: PostCategory;
   authorId: string;
-  author?: Author; // Transformed from ID for UI
+  authorInfo?: AuthorInfo;
+  author?: { name: string; avatar: string; role: string }; // Legacy support
   content: string;
   contentHtml?: string;
   excerpt?: string;
@@ -104,19 +118,26 @@ export interface Post extends AuditableEntity {
   commentCount: number;
   reactionCount: number;
   shareCount: number;
-  viewCount: string;
+  viewCount: number;
   isShared: boolean;
   isPinned: boolean;
+  viewerReaction?: string | null;
+  sharedByViewer: boolean;
   
   // Extension Relations
   poll?: PostPoll;
   task?: PostTask;
   announcement?: PostAnnouncement;
-  attachments?: PostMediaAttachment[];
+  attachments: PostMediaAttachment[];
+  
+  // Mentions & Tags
+  mentions: string[];
+  tags: string[];
+  metadata?: string;
   
   // UI helpers (legacy compatibility)
-  likes: number; // mapped to reactionCount
-  comments: number; // mapped to commentCount
-  isLiked?: boolean;
+  likes?: number; // mapped to reactionCount
+  comments?: number; // mapped to commentCount
+  isLiked?: boolean; // depends on viewerReaction
 }
 

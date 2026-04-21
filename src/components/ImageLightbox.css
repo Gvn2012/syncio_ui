@@ -65,6 +65,58 @@
   padding: 0.6rem 1.2rem;
   border-radius: 30px;
   backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.counter {
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 64px;
+  height: 84px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s var(--transition-bezier);
+  z-index: 10001;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.nav-btn.prev {
+  left: 2rem;
+}
+
+.nav-btn.next {
+  right: 2rem;
+}
+
+@media (max-width: 768px) {
+  .nav-btn {
+    width: 44px;
+    height: 64px;
+  }
+  .nav-btn.prev { left: 0.5rem; }
+  .nav-btn.next { right: 0.5rem; }
 }
 
 @keyframes lightboxFadeIn {

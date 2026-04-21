@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, 
   Bell, 
-  Mail, 
   Settings,
   UserRound,
   LogOut,
@@ -12,7 +11,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { logout, fetchUserDetail } from '../store/slices/userSlice';
+import { fetchUnreadCount } from '../store/slices/notificationSlice';
 import { UserAvatar } from './UserAvatar';
+import { NotificationDropdown } from '../features/notification/components/NotificationDropdown';
 import { useDebounce } from '../hooks/useDebounce';
 import { SearchService } from '../features/search/api/search.service';
 import type { UniversalSearchResponse } from '../features/search/api/types';
@@ -28,14 +29,20 @@ import { CachedImage } from './common/CachedImage';
 
 export const TopBar: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { id, userDetail } = useSelector((state: RootState) => state.user);
+  const { unreadCount } = useSelector((state: RootState) => state.notification);
 
   useEffect(() => {
-    if (id && !userDetail) {
-      dispatch(fetchUserDetail(id));
+    if (id) {
+      if (!userDetail) {
+        dispatch(fetchUserDetail(id));
+      }
+      dispatch(fetchUnreadCount());
     }
   }, [id, userDetail, dispatch]);
   
@@ -80,8 +87,8 @@ export const TopBar: React.FC = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
       }
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsResultsOpen(false);
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
       }
     };
 
@@ -214,13 +221,24 @@ export const TopBar: React.FC = () => {
       </div>
 
       <div className="topbar-actions">
-        <button className="icon-btn">
-          <Bell size={20} />
-          <span className="badge"></span>
-        </button>
-        <button className="icon-btn">
-          <Mail size={20} />
-        </button>
+        <div className="notification-orchestrator" ref={notificationRef}>
+          <button 
+            className={`icon-btn ${isNotificationOpen ? 'active' : ''}`}
+            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="badge">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          
+          <NotificationDropdown 
+            isOpen={isNotificationOpen} 
+            onClose={() => setIsNotificationOpen(false)} 
+          />
+        </div>
         <Link to="/settings" className="icon-btn desktop-only">
           <Settings size={20} />
         </Link>

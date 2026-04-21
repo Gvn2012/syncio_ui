@@ -8,6 +8,8 @@ interface UIState {
   language: 'en' | 'vi' | 'zh';
   isSidebarOpen: boolean;
   activeLightboxImage: string | null;
+  lightboxImages: string[];
+  activeLightboxIndex: number;
   alert: {
     message: string | null;
     type: AlertType;
@@ -21,6 +23,8 @@ const initialState: UIState = {
   language: 'en',
   isSidebarOpen: true,
   activeLightboxImage: null,
+  lightboxImages: [],
+  activeLightboxIndex: 0,
   alert: {
     message: null,
     type: 'error',
@@ -46,6 +50,35 @@ const uiSlice = createSlice({
     },
     setLightboxImage: (state, action: PayloadAction<string | null>) => {
       state.activeLightboxImage = action.payload;
+      if (action.payload) {
+        state.lightboxImages = [action.payload];
+        state.activeLightboxIndex = 0;
+      } else {
+        state.lightboxImages = [];
+        state.activeLightboxIndex = 0;
+      }
+    },
+    openLightbox: (state, action: PayloadAction<{ images: string[]; index?: number }>) => {
+      state.lightboxImages = action.payload.images;
+      state.activeLightboxIndex = action.payload.index || 0;
+      state.activeLightboxImage = action.payload.images[state.activeLightboxIndex];
+    },
+    closeLightbox: (state) => {
+      state.activeLightboxImage = null;
+      state.lightboxImages = [];
+      state.activeLightboxIndex = 0;
+    },
+    nextLightboxImage: (state) => {
+      if (state.lightboxImages.length > 0) {
+        state.activeLightboxIndex = (state.activeLightboxIndex + 1) % state.lightboxImages.length;
+        state.activeLightboxImage = state.lightboxImages[state.activeLightboxIndex];
+      }
+    },
+    prevLightboxImage: (state) => {
+      if (state.lightboxImages.length > 0) {
+        state.activeLightboxIndex = (state.activeLightboxIndex - 1 + state.lightboxImages.length) % state.lightboxImages.length;
+        state.activeLightboxImage = state.lightboxImages[state.activeLightboxIndex];
+      }
     },
     showError: (state, action: PayloadAction<string | { message: string; title?: string }>) => {
       if (!state.alert) state.alert = { ...initialState.alert };
@@ -86,6 +119,10 @@ export const {
   setLanguage, 
   toggleSidebar, 
   setLightboxImage,
+  openLightbox,
+  closeLightbox,
+  nextLightboxImage,
+  prevLightboxImage,
   showError,
   showSuccess,
   showAlert,

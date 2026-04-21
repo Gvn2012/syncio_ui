@@ -1,5 +1,4 @@
 import React from 'react';
-import { Layout } from '../../../components/Layout';
 import { TaskCard } from '../components/TaskCard';
 import { demoFeedItems } from '../../feed/data';
 import { PostCategory, TaskStatus } from '../../feed/types';
@@ -17,8 +16,7 @@ export const TasksPage: React.FC = () => {
   const finalizedTasks = taskPosts.filter(p => p.task?.status === TaskStatus.COMPLETED);
 
   return (
-    <Layout>
-      <div className="tasks-page">
+    <div className="tasks-page">
         <header className="tasks-header">
           <div className="header-text">
             <h2>Sync Tasks</h2>
@@ -76,7 +74,6 @@ export const TasksPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
 };
 
