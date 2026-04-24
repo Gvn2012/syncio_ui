@@ -36,13 +36,13 @@ import type {
   UserDetailResponse
 } from '../types';
 import './ProfileScreen.css';
-import { formatDate } from '../../../common/utils/date';
+import { useFormatDate } from '../../../common/hooks/useFormatDate';
 
 export const ProfileScreen: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const { format } = useFormatDate();
   const { id: currentUserId, userDetail: currentUserDetail, userDetailLoading: currentUserLoading } = useSelector(
     (state: RootState) => state.user
   );
@@ -363,7 +363,7 @@ export const ProfileScreen: React.FC = () => {
                 {profile?.dateOfBirth && (
                   <div className="meta-chip">
                     <Calendar size={14} />
-                    <span>{formatDate(profile.dateOfBirth) || ''}</span>
+                    <span>{format(profile.dateOfBirth) || ''}</span>
                   </div>
                 )}
                 <div className="meta-chip">
@@ -476,7 +476,7 @@ export const ProfileScreen: React.FC = () => {
                       <p className="detail-sub">{emp.organizationName} • {emp.departmentName}</p>
                       <div className="employment-meta-row">
                         <span className="type-badge">{emp.employmentType.replace('_', ' ')}</span>
-                        <span className="detail-sub">Since {emp.hireDate}</span>
+                        <span className="detail-sub">Since {format(emp.hireDate)}</span>
                       </div>
                     </div>
                   ))}

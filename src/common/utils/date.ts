@@ -12,7 +12,6 @@ export const formatDate = (
 ): string => {
   const d = new Date(date);
   
-  // Handle invalid dates
   if (isNaN(d.getTime())) {
     return 'Invalid Date';
   }
@@ -32,7 +31,11 @@ export const formatDate = (
   }
 };
 
-export const formatTimeAgo = (date: string | Date): string => {
+export const formatTimeAgo = (
+  date: string | Date,
+  format: 'DD-MM-YYYY' | 'YYYY-MM-DD' | 'MM-DD-YYYY' = 'DD-MM-YYYY',
+  separator: '-' | '/' = '-'
+): string => {
   const d = new Date(date);
   if (isNaN(d.getTime())) return 'Invalid Date';
 
@@ -50,5 +53,5 @@ export const formatTimeAgo = (date: string | Date): string => {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   
-  return d.toLocaleDateString();
+  return formatDate(d, format, separator);
 };

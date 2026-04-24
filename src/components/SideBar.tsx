@@ -58,10 +58,9 @@ export const SideBar: React.FC = () => {
     };
 
     fetchPendingCount();
-    // Refresh count when location changes (in case user handled requests in People page)
+
   }, [id, location.pathname]);
 
-  // Derive display values from userDetail
   const displayName = userDetail
     ? `${userDetail.userResponse.firstName} ${userDetail.userResponse.lastName}`
     : 'User';

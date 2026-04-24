@@ -17,10 +17,10 @@ interface CategorySelectorProps {
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({ selected, onSelect }) => {
   const categories = [
-    { id: PostCategory.NORMAL, label: 'Feed Post', icon: FileText, color: 'var(--primary)' },
-    { id: PostCategory.TASK, label: 'Task Sync', icon: CheckSquare, color: '#f59e0b' },
-    { id: PostCategory.EVENT, label: 'Event Sync', icon: Calendar, color: '#8b5cf6' },
-    { id: PostCategory.POLL, label: 'Interactive Poll', icon: BarChart3, color: '#10b981' },
+    { id: PostCategory.NORMAL, label: 'Feed', icon: FileText, color: 'var(--primary)' },
+    { id: PostCategory.TASK, label: 'Task', icon: CheckSquare, color: '#f59e0b' },
+    { id: PostCategory.EVENT, label: 'Event', icon: Calendar, color: '#8b5cf6' },
+    { id: PostCategory.POLL, label: 'Poll', icon: BarChart3, color: '#10b981' },
     { id: PostCategory.ANNOUNCEMENT, label: 'Announcement', icon: Megaphone, color: '#ef4444' },
   ];
 
