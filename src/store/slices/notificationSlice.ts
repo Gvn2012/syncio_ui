@@ -4,6 +4,7 @@ import type { GetUserNotificationResponse } from '../../features/notification/ap
 
 interface NotificationState {
   unreadCount: number;
+  friendRequestCount: number;
   notifications: GetUserNotificationResponse[];
   loading: boolean;
   loadingMore: boolean;
@@ -14,6 +15,7 @@ interface NotificationState {
 
 const initialState: NotificationState = {
   unreadCount: 0,
+  friendRequestCount: 0,
   notifications: [],
   loading: false,
   loadingMore: false,
@@ -30,6 +32,19 @@ export const fetchUnreadCount = createAsyncThunk(
       return response.data.totalElements;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch unread count');
+    }
+  }
+);
+
+export const fetchFriendRequestCount = createAsyncThunk(
+  'notification/fetchFriendRequestCount',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { RelationshipService } = await import('../../features/user/api/relationship.service');
+      const response = await RelationshipService.getPendingRequests('RECEIVED', 0, 1);
+      return response.data.totalElements;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch friend request count');
     }
   }
 );
@@ -56,15 +71,29 @@ const notificationSlice = createSlice({
     decrementUnreadCount: (state) => {
       state.unreadCount = Math.max(0, state.unreadCount - 1);
     },
+    setFriendRequestCount: (state, action: PayloadAction<number>) => {
+      state.friendRequestCount = action.payload;
+    },
+    decrementFriendRequestCount: (state) => {
+      state.friendRequestCount = Math.max(0, state.friendRequestCount - 1);
+    },
+    incrementFriendRequestCount: (state) => {
+      state.friendRequestCount += 1;
+    },
     clearNotifications: (state) => {
       state.notifications = [];
       state.unreadCount = 0;
+      state.friendRequestCount = 0;
     },
   },
   extraReducers: (builder) => {
     builder
+      .addCase('user/logout', () => initialState)
       .addCase(fetchUnreadCount.fulfilled, (state, action: PayloadAction<number>) => {
         state.unreadCount = action.payload;
+      })
+      .addCase(fetchFriendRequestCount.fulfilled, (state, action: PayloadAction<number>) => {
+        state.friendRequestCount = action.payload;
       })
       .addCase(fetchNotifications.pending, (state, action) => {
         const isInitialPage = action.meta.arg.page === 0;
@@ -97,5 +126,12 @@ const notificationSlice = createSlice({
   },
 });
 
-export const { setUnreadCount, decrementUnreadCount, clearNotifications } = notificationSlice.actions;
+export const { 
+  setUnreadCount, 
+  decrementUnreadCount, 
+  setFriendRequestCount,
+  decrementFriendRequestCount,
+  incrementFriendRequestCount,
+  clearNotifications 
+} = notificationSlice.actions;
 export default notificationSlice.reducer;

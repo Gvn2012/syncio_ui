@@ -76,13 +76,13 @@ api.interceptors.response.use(
         const refreshRes = await api.post(REFRESH_ENDPOINT, {}, { _retry: true } as any);
         
         if (refreshRes.data && refreshRes.data.success && refreshRes.data.data) {
-           const { userRole } = refreshRes.data.data;
+           const { userRoles } = refreshRes.data.data;
 
            const currentUser = store.getState().user;
            store.dispatch(setUser({
              id: currentUser.id!,
              username: currentUser.username!,
-             role: userRole || currentUser.role,
+             role: userRoles || currentUser.role,
              orgId: currentUser.orgId!
            }));
 

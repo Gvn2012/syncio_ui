@@ -30,6 +30,7 @@ import { UserService } from '../api/user.service';
 import { RelationshipActions } from '../components/RelationshipActions';
 import { RelationshipService } from '../api/relationship.service';
 import { showSuccess, showError } from '../../../store/slices/uiSlice';
+import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
 import type { 
   UserAddressResponse, 
   UserSkillResponse,
@@ -131,10 +132,12 @@ export const ProfileScreen: React.FC = () => {
 
     setIsUploading(true);
     try {
+      const fileToUpload = await compressFileIfNeeded(file);
+
       const uploadParams = await uploadService.requestUploadUrl({
-        fileName: file.name,
-        fileContentType: file.type,
-        size: file.size
+        fileName: fileToUpload.name,
+        fileContentType: fileToUpload.type,
+        size: fileToUpload.size
       });
 
       if (uploadParams.success) {
@@ -144,8 +147,8 @@ export const ProfileScreen: React.FC = () => {
 
         await uploadService.uploadToGcs(
           uploadUrl,
-          file,
-          headers['Content-Type'] || file.type,
+          fileToUpload,
+          headers['Content-Type'] || fileToUpload.type,
           headers
         );
 

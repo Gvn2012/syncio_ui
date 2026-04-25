@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../../../store';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { 
   setDateFormat, 
   setDateSeparator, 
+  setReactionHoverDuration,
   type DateFormat, 
-  type DateSeparator 
+  type DateSeparator,
+  type HoverDuration
 } from '../../../store/slices/preferencesSlice';
 import { 
   setTheme, 
   setLanguage 
 } from '../../../store/slices/uiSlice';
+import { useDebounce } from '../../../hooks/useDebounce';
 import { 
   Globe, 
   Moon, 
@@ -27,7 +30,8 @@ import {
   Save,
   CheckCircle2,
   Loader2,
-  X
+  X,
+  MousePointer2
 } from 'lucide-react';
 import './SettingsPage.css';
 
@@ -138,6 +142,79 @@ const DateFormattingSection: React.FC<{
   </motion.section>
 ));
 
+const InteractionSection: React.FC<{
+  hoverDuration: HoverDuration;
+  onHoverDurationChange: (d: HoverDuration) => void;
+  variants: any;
+}> = React.memo(({ hoverDuration, onHoverDurationChange, variants }) => {
+  const [localValue, setLocalValue] = useState(hoverDuration);
+  const debouncedValue = useDebounce(localValue, 1000);
+
+  useEffect(() => {
+    if (debouncedValue !== hoverDuration) {
+      onHoverDurationChange(debouncedValue);
+    }
+  }, [debouncedValue, hoverDuration, onHoverDurationChange]);
+
+  useEffect(() => {
+    setLocalValue(hoverDuration);
+  }, [hoverDuration]);
+
+  return (
+    <motion.section className="settings-section" variants={variants}>
+      <div className="section-header">
+        <div className="section-icon"><MousePointer2 size={20} /></div>
+        <div className="section-title">
+          <h3>Interactions</h3>
+          <p>Customize how you interact with posts and reactions.</p>
+        </div>
+      </div>
+      <div className="settings-group">
+        <div className="setting-item">
+          <label>Reaction Picker Hover Delay</label>
+          <p className="setting-description" style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+            How long to hover over the reaction button before the full picker appears.
+          </p>
+          <div className="slider-container">
+            <div className="slider-labels">
+              <span>Fast (0.5s)</span>
+              <span>Slow (2.0s)</span>
+            </div>
+            <div className="range-wrapper">
+              <div 
+                className="slider-progress-bar" 
+                style={{ width: `${((localValue - 500) / (2000 - 500)) * 100}%` }}
+              />
+              <input 
+                type="range" 
+                min="500" 
+                max="2000" 
+                step="100"
+                value={localValue} 
+                onChange={(e) => setLocalValue(Number(e.target.value))}
+                className="premium-slider"
+                style={{ position: 'relative', zIndex: 1 }}
+              />
+            </div>
+            <div className="slider-value-display">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  key={Math.round(localValue / 100) * 100} 
+                  initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  Current: {(localValue / 1000).toFixed(1)}s
+                </motion.span>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+});
 const LanguageSection: React.FC<{ 
   language: string; 
   onLanguageChange: (l: 'en' | 'vi' | 'zh') => void; 
@@ -299,7 +376,7 @@ const SecuritySection: React.FC<{ variants: any }> = React.memo(({ variants }) =
 
 export const SettingsPage: React.FC = () => {
   const dispatch = useDispatch();
-  const { dateFormat, dateSeparator } = useSelector((state: RootState) => state.preferences);
+  const { dateFormat, dateSeparator, reactionHoverDuration } = useSelector((state: RootState) => state.preferences);
   const { theme, language } = useSelector((state: RootState) => state.ui);
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -350,6 +427,7 @@ export const SettingsPage: React.FC = () => {
   const onFormatChange = React.useCallback((f: DateFormat) => dispatch(setDateFormat(f)), [dispatch]);
   const onSeparatorChange = React.useCallback((s: DateSeparator) => dispatch(setDateSeparator(s)), [dispatch]);
   const onLanguageChange = React.useCallback((l: 'en' | 'vi' | 'zh') => dispatch(setLanguage(l)), [dispatch]);
+  const onHoverDurationChange = React.useCallback((d: HoverDuration) => dispatch(setReactionHoverDuration(d)), [dispatch]);
 
   return (
     <div className="settings-view">
@@ -436,6 +514,11 @@ export const SettingsPage: React.FC = () => {
           variants={itemVariants}
           dateFormats={dateFormats}
           dateSeparators={dateSeparators}
+        />
+        <InteractionSection 
+          hoverDuration={reactionHoverDuration} 
+          onHoverDurationChange={onHoverDurationChange} 
+          variants={itemVariants} 
         />
         <LanguageSection 
           language={language} 

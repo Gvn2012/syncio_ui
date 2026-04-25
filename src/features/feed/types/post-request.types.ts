@@ -36,11 +36,10 @@ export interface PostCreateRequest {
   postCategory: PostCategory;
   visibility: PostVisibility;
   orgId: string | null;
-  mentions?: string[]; // UUID strings
+  mentions?: string[];
   tags?: string[];
-  metadata?: string; // JSON string
-  
-  // Polymorphic Extensions
+  metadata?: string;
+
   event?: PostEventRequest | null;
   poll?: PostPollRequest | null;
   task?: PostTaskRequest | null;
@@ -53,8 +52,8 @@ export interface PostEventRequest {
   title: string;
   description?: string;
   location?: string;
-  startTime: string; // ISO string
-  endTime: string; // ISO string
+  startTime: string;
+  endTime: string;
   isVirtual: boolean;
   joinUrl?: string;
   maxParticipants?: number;
@@ -64,8 +63,8 @@ export interface PostTaskRequest {
   title: string;
   description?: string;
   priority: PostPriority;
-  dueAt: string; // ISO string
-  assignees: string[]; // UUID strings
+  dueAt: string;
+  assignees: string[];
 }
 
 export interface PollOptionRequest {
@@ -77,13 +76,13 @@ export interface PostPollRequest {
   question: string;
   allowMultipleAnswers: boolean;
   maxOptionsSelected: number;
-  expiresAt: string; // ISO string
+  expiresAt: string;
   options: PollOptionRequest[];
 }
 
 export interface PostAnnouncementRequest {
   priority: PostPriority;
   isPinned: boolean;
-  pinnedUntil?: string; // ISO string
+  pinnedUntil?: string;
   requiresAcknowledgement: boolean;
 }

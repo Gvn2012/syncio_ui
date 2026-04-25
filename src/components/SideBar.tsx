@@ -14,8 +14,8 @@ import {
   User,
   Users
 } from 'lucide-react';
-import { RelationshipService } from '../features/user/api/relationship.service';
 import { useSelector, useDispatch } from 'react-redux';
+import { fetchFriendRequestCount } from '../store/slices/notificationSlice';
 import type { RootState, AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
 import { UserAvatar } from './UserAvatar';
@@ -34,6 +34,7 @@ const navItems = [
 export const SideBar: React.FC = () => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
+  const { friendRequestCount } = useSelector((state: RootState) => state.notification);
   const { id, userDetail } = useSelector((state: RootState) => state.user);
 
   useEffect(() => {
@@ -42,24 +43,11 @@ export const SideBar: React.FC = () => {
     }
   }, [id, userDetail, dispatch]);
 
-  const [pendingCount, setPendingCount] = React.useState(0);
-
   useEffect(() => {
-    const fetchPendingCount = async () => {
-      if (!id) return;
-      try {
-        const res = await RelationshipService.getPendingRequests('RECEIVED', 0, 1);
-        if (res.success) {
-          setPendingCount(res.data.totalElements);
-        }
-      } catch (err) {
-        console.error("Failed to fetch pending requests count", err);
-      }
-    };
-
-    fetchPendingCount();
-
-  }, [id, location.pathname]);
+    if (id) {
+      dispatch(fetchFriendRequestCount());
+    }
+  }, [id, location.pathname, dispatch]);
 
   const displayName = userDetail
     ? `${userDetail.userResponse.firstName} ${userDetail.userResponse.lastName}`
@@ -91,8 +79,8 @@ export const SideBar: React.FC = () => {
               >
                 <item.icon size={20} className="nav-icon" />
                 <span>{item.label}</span>
-                {item.id === 'people' && pendingCount > 0 && (
-                  <span className="nav-badge">{pendingCount}</span>
+                {item.id === 'people' && friendRequestCount > 0 && (
+                  <span className="nav-badge">{friendRequestCount}</span>
                 )}
               </Link>
             </li>

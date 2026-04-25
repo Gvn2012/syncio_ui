@@ -14,7 +14,9 @@ import {
 import { RelationshipService } from '../api/relationship.service';
 import type { RelationshipStatusResponse } from '../api/types';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
+import { fetchFriendRequestCount, fetchUnreadCount } from '../../../store/slices/notificationSlice';
 import { useDispatch } from 'react-redux';
+import { type AppDispatch } from '../../../store';
 import './RelationshipActions.css';
 
 interface RelationshipActionsProps {
@@ -23,7 +25,7 @@ interface RelationshipActionsProps {
 }
 
 export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ targetId, onStatusChange }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const [status, setStatus] = useState<RelationshipStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -70,6 +72,8 @@ export const RelationshipActions: React.FC<RelationshipActionsProps> = ({ target
       const res = await action();
       if (res.success) {
         dispatch(showSuccess(successMsg));
+        dispatch(fetchFriendRequestCount());
+        dispatch(fetchUnreadCount());
         await fetchStatus();
       } else {
         dispatch(showError(res.message || 'Action failed'));

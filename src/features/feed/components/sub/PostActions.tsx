@@ -1,5 +1,10 @@
-import React from 'react';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { MessageCircle, Share2 } from 'lucide-react';
+import { getReactionIcon } from '../../utils/reactionUtils';
+import { ReactionType } from '../../types';
+import { ReactionPicker } from './ReactionPicker';
+import type { RootState } from '../../../../store';
 
 interface PostActionsProps {
   reactionCount: number;
@@ -7,7 +12,7 @@ interface PostActionsProps {
   shareCount: number;
   viewerReaction?: string | null;
   sharedByViewer: boolean;
-  onLike?: () => void;
+  onReaction?: (type: ReactionType) => void;
   onComment?: () => void;
   onShare?: () => void;
 }
@@ -18,26 +23,81 @@ export const PostActions: React.FC<PostActionsProps> = ({
   shareCount,
   viewerReaction,
   sharedByViewer,
-  onLike,
+  onReaction,
   onComment,
   onShare,
 }) => {
-  const isLiked = !!viewerReaction;
+  const [showPicker, setShowPicker] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverDuration = useSelector((state: RootState) => state.preferences.reactionHoverDuration);
+  
+  const isReacted = !!viewerReaction;
+  
+  const handleReactionClick = () => {
+    if (showPicker) return;
+
+    const type = (viewerReaction as ReactionType) || ReactionType.LIKE;
+    onReaction?.(type);
+  };
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowPicker(true);
+    }, hoverDuration);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowPicker(false);
+    }, 300);
+  };
+
+  const handleSelectReaction = (type: ReactionType) => {
+    onReaction?.(type);
+    setShowPicker(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
 
   return (
-    <footer className="feed-actions">
-      <button 
-        className={`action-btn ${isLiked ? 'active' : ''}`} 
-        onClick={onLike}
-        aria-label={`Like (${reactionCount})`}
+    <footer className="feed-actions" style={{ position: 'relative' }}>
+      <div 
+        className="reaction-wrapper"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
-        <Heart 
-          size={18} 
-          fill={isLiked ? 'var(--primary)' : 'none'} 
-          className={isLiked ? 'animate-pulse' : ''}
+        <ReactionPicker 
+          isVisible={showPicker}
+          onSelect={handleSelectReaction}
+          onMouseEnter={() => {
+            if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+            setShowPicker(true);
+          }}
+          onMouseLeave={handleMouseLeave}
         />
-        <span>{reactionCount}</span>
-      </button>
+        
+        <button 
+          className={`action-btn ${isReacted ? 'active' : ''}`} 
+          onClick={handleReactionClick}
+          aria-label={`React (${reactionCount})`}
+        >
+          {getReactionIcon(viewerReaction || ReactionType.LIKE, isReacted)}
+          <span style={{ 
+            color: isReacted ? 'var(--text-main)' : 'var(--text-muted)',
+            fontWeight: isReacted ? 600 : 400
+          }}>
+            {reactionCount}
+          </span>
+        </button>
+      </div>
       
       <button 
         className="action-btn" 

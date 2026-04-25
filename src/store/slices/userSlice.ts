@@ -62,6 +62,7 @@ const userSlice = createSlice({
       state.userDetail = null;
       state.userDetailLoading = false;
       state.userDetailError = null;
+    
     },
     setRole: (state, action: PayloadAction<String[]>) => {
       state.role = action.payload;

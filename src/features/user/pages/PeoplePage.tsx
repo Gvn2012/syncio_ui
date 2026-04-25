@@ -24,16 +24,18 @@ import type {
 } from '../api/types';
 
 import type { PageResponse } from '../../../api/types/common-types';
-import type { RootState } from '../../../store';
+import type { RootState, AppDispatch } from '../../../store';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
+import { fetchFriendRequestCount, fetchUnreadCount } from '../../../store/slices/notificationSlice';
 import './PeoplePage.css';
 
 type TabType = 'friends' | 'requests_received' | 'requests_sent' | 'following' | 'followers' | 'blocked';
 
 export const PeoplePage: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const { friendRequestCount } = useSelector((state: RootState) => state.notification);
   const { id: currentUserId } = useSelector((state: RootState) => state.user);
   
   const [searchParams, setSearchParams] = useSearchParams();
@@ -99,19 +101,15 @@ export const PeoplePage: React.FC = () => {
   // Initial fetch for badge counts and following IDs
   useEffect(() => {
     if (currentUserId) {
-      if (activeTab !== 'requests_received') {
-        RelationshipService.getPendingRequests('RECEIVED', 0, 1)
-          .then(res => {
-            if (res.success) setPendingReceivedData(res.data);
-          });
-      }
+      dispatch(fetchFriendRequestCount());
+      dispatch(fetchUnreadCount());
       
       RelationshipService.getFollowingIds(currentUserId)
         .then(res => {
           if (res.success) setFollowingIds(res.data);
         });
     }
-  }, [currentUserId]);
+  }, [currentUserId, dispatch]);
  
   const handleTabChange = (tab: TabType) => {
     setSearchParams({ v: tab });
@@ -123,6 +121,11 @@ export const PeoplePage: React.FC = () => {
       const res = await action();
       if (res.success) {
         dispatch(showSuccess(successMsg));
+        
+        // Update global counts immediately
+        dispatch(fetchFriendRequestCount());
+        dispatch(fetchUnreadCount());
+        
         fetchData();
         // Refresh following IDs if we followed/unfollowed
         if (currentUserId) {
@@ -418,7 +421,7 @@ export const PeoplePage: React.FC = () => {
           { id: 'friends', icon: <UserCheck size={18} />, label: 'Friends' },
           { id: 'following', icon: <UserPlus size={18} />, label: 'Following' },
           { id: 'followers', icon: <Users size={18} />, label: 'Followers' },
-          { id: 'requests_received', icon: <Clock size={18} />, label: 'Received', indicator: pendingReceivedData?.totalElements },
+          { id: 'requests_received', icon: <Clock size={18} />, label: 'Received', indicator: activeTab === 'requests_received' ? pendingReceivedData?.totalElements : friendRequestCount },
           { id: 'requests_sent', icon: <Clock size={18} />, label: 'Sent' },
           { id: 'blocked', icon: <ShieldOff size={18} />, label: 'Privacy' },
         ].map(tab => (

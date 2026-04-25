@@ -24,6 +24,14 @@ export enum PostVisibility {
   PRIVATE = 'PRIVATE'
 }
 
+export enum ReactionType {
+  LIKE = 'LIKE',
+  DISLIKE = 'DISLIKE',
+  LOVE = 'LOVE',
+  ANGRY = 'ANGRY',
+  SAD = 'SAD'
+}
+
 export enum TaskStatus {
   OPEN = 'OPEN',
   IN_PROGRESS = 'IN_PROGRESS',
@@ -32,7 +40,7 @@ export enum TaskStatus {
 }
 
 export interface AuthorInfo {
-  userId: string; // UUID
+  userId: string; 
   username: string;
   displayName: string;
   avatarUrl: string;
@@ -40,14 +48,14 @@ export interface AuthorInfo {
   active: boolean;
   suspended: boolean;
   banned: boolean;
-  role?: string; // UI dynamic addition
+  role?: string; 
 }
 
 export interface AuditableEntity {
-  id: string; // UUID
-  orgId: string; // UUID
-  createdAt: string; // ISO DateTime
-  updatedAt: string; // ISO DateTime
+  id: string; 
+  orgId: string; 
+  createdAt: string; 
+  updatedAt: string; 
 }
 
 export interface PollOption {
@@ -121,23 +129,36 @@ export interface Post extends AuditableEntity {
   viewCount: number;
   isShared: boolean;
   isPinned: boolean;
-  viewerReaction?: string | null;
+  viewerReaction?: ReactionType | null;
   sharedByViewer: boolean;
   
-  // Extension Relations
   poll?: PostPoll;
   task?: PostTask;
   announcement?: PostAnnouncement;
   attachments: PostMediaAttachment[];
   
-  // Mentions & Tags
   mentions: string[];
   tags: string[];
   metadata?: string;
+  topReactions?: ReactionType[];
   
-  // UI helpers (legacy compatibility)
-  likes?: number; // mapped to reactionCount
-  comments?: number; // mapped to commentCount
-  isLiked?: boolean; // depends on viewerReaction
+  likes?: number; 
+  comments?: number; 
+  isLiked?: boolean; 
+}
+
+export interface ReactorSummary {
+  userId: string | null;
+  username: string;
+  fullName: string;
+  avatarUrl: string | null;
+  isFriend: boolean;
+  isBlocked: boolean;
+}
+
+export interface PostReactionGroup {
+  reactionType: ReactionType;
+  count: number;
+  reactors: ReactorSummary[];
 }
 

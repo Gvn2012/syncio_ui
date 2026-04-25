@@ -16,6 +16,11 @@ interface UIState {
     isVisible: boolean;
     title?: string;
   };
+  modal: {
+    isOpen: boolean;
+    type: string | null;
+    data: any | null;
+  };
 }
 
 const initialState: UIState = {
@@ -29,6 +34,11 @@ const initialState: UIState = {
     message: null,
     type: 'error',
     isVisible: false,
+  },
+  modal: {
+    isOpen: false,
+    type: null,
+    data: null,
   },
 };
 
@@ -69,13 +79,13 @@ const uiSlice = createSlice({
       state.activeLightboxIndex = 0;
     },
     nextLightboxImage: (state) => {
-      if (state.lightboxImages.length > 0) {
+      if (state.lightboxImages && state.lightboxImages.length > 0) {
         state.activeLightboxIndex = (state.activeLightboxIndex + 1) % state.lightboxImages.length;
         state.activeLightboxImage = state.lightboxImages[state.activeLightboxIndex];
       }
     },
     prevLightboxImage: (state) => {
-      if (state.lightboxImages.length > 0) {
+      if (state.lightboxImages && state.lightboxImages.length > 0) {
         state.activeLightboxIndex = (state.activeLightboxIndex - 1 + state.lightboxImages.length) % state.lightboxImages.length;
         state.activeLightboxImage = state.lightboxImages[state.activeLightboxIndex];
       }
@@ -110,6 +120,22 @@ const uiSlice = createSlice({
         state.alert.isVisible = false;
       }
     },
+    openModal: (state, action: PayloadAction<{ type: string; data?: any }>) => {
+      if (!state.modal) {
+        state.modal = { isOpen: false, type: null, data: null };
+      }
+      state.modal.isOpen = true;
+      state.modal.type = action.payload.type;
+      state.modal.data = action.payload.data;
+    },
+    closeModal: (state) => {
+      if (!state.modal) {
+        state.modal = { isOpen: false, type: null, data: null };
+      }
+      state.modal.isOpen = false;
+      state.modal.type = null;
+      state.modal.data = null;
+    },
   },
 });
 
@@ -126,7 +152,9 @@ export const {
   showError,
   showSuccess,
   showAlert,
-  hideAlert
+  hideAlert,
+  openModal,
+  closeModal
 } = uiSlice.actions;
 
 

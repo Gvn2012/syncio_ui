@@ -19,6 +19,7 @@ import { PostCategory } from '../types';
 import { PostVisibility, type PostCreateRequest } from '../types/post-request.types';
 import { FeedService } from '../api/feed.service';
 import { currentUser } from '../../user/data';
+import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
 import './CreatePostScreen.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -42,6 +43,8 @@ export const CreatePostScreen: React.FC = () => {
   const [taggedUserIds, setTaggedUserIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+
   
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -152,7 +155,7 @@ export const CreatePostScreen: React.FC = () => {
         language: 'en',
         visibility,
         postCategory: category,
-        orgId: '0a5400c4-9d78-1035-819d-787424660002',
+        orgId: null,
         metadata,
         content: category === PostCategory.NORMAL ? content : undefined,
         contentHtml: category === PostCategory.NORMAL ? `<p>${content}</p>` : undefined,
@@ -165,8 +168,13 @@ export const CreatePostScreen: React.FC = () => {
           Object.assign(request, extensions);
       }
 
+      let filesToUpload = selectedFiles;
       if (category === PostCategory.NORMAL && selectedFiles.length > 0) {
-          request.attachments = selectedFiles.map((file, i) => ({
+          filesToUpload = await Promise.all(selectedFiles.map(file => compressFileIfNeeded(file)));
+      }
+
+      if (category === PostCategory.NORMAL && filesToUpload.length > 0) {
+          request.attachments = filesToUpload.map((file, i) => ({
               fileName: file.name,
               mimeType: file.type,
               sizeBytes: file.size,
@@ -182,8 +190,8 @@ export const CreatePostScreen: React.FC = () => {
           const uploadPromises = post.attachments.map(attachment => {
               if (attachment.uploadUrl) {
                   const file = attachment.position 
-                    ? selectedFiles[attachment.position - 1]
-                    : selectedFiles.find(f => attachment.fileName?.endsWith(f.name));
+                    ? filesToUpload[attachment.position - 1]
+                    : filesToUpload.find(f => attachment.fileName?.endsWith(f.name));
                   
                   console.log('Matching file for attachment:', attachment.fileName, file);
                   if (file) {

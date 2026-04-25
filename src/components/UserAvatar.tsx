@@ -14,7 +14,6 @@ interface UserAvatarProps {
 }
 
 
-// Global cache to track failed URLs across component mounts and prevent infinite loop
 const failedUrls = new Set<string>();
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId, showLink = true, src }) => {

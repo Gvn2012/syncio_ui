@@ -1,0 +1,53 @@
+.post-reactions-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--transition-bezier);
+  width: fit-content;
+  border-radius: var(--radius-full);
+  margin-top: -4px; 
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+}
+
+.post-reactions-summary:hover {
+  background-color: var(--bg-main);
+  border-color: var(--border-color);
+}
+
+.post-reactions-summary:hover .reaction-total-count {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reaction-icons-stack {
+  display: flex;
+  align-items: center;
+}
+
+.summary-icon-wrapper {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.post-reactions-summary:hover .summary-icon-wrapper {
+  transform: scale(1.1);
+}
+
+.reaction-total-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.3s ease;
+}

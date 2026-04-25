@@ -23,10 +23,11 @@ import { authService } from '../api/auth.service';
 import { OrgService } from '../../org/api/org.service';
 import { uploadService } from '../../../api/upload.service';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
+import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
 import { type RegisterRequest as RegisterData } from '../api/types';
 import { type AddressData, type EmergencyContactData } from '../../../api/types/common-types';
 import './Register.css';
-import { form } from 'framer-motion/client';
+
 
 export const RegisterPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -371,6 +372,8 @@ export const RegisterPage: React.FC = () => {
       if (!fileToUpload) {
         fileToUpload = await generateAvatarFile(formData.firstName, formData.lastName);
       }
+
+      fileToUpload = await compressFileIfNeeded(fileToUpload);
 
       try {
         const uploadResponse = await uploadService.requestUploadUrl({

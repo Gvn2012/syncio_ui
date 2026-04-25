@@ -19,8 +19,11 @@ import { PeoplePage } from './features/user/pages/PeoplePage';
 import { SyncDetailScreen } from './features/feed/pages/SyncDetailScreen';
 import { ImageLightbox } from './components/ImageLightbox';
 import { GlobalTooltip } from './components/GlobalTooltip';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { GlobalError } from './components/GlobalError';
+import { DetailedReactionsModal } from './features/feed/components/sub/DetailedReactionsModal';
+import { closeModal, openModal } from './store/slices/uiSlice';
+import { useDispatch } from 'react-redux';
 import './App.css';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -48,7 +51,6 @@ function AppRoutes() {
   
   return (
     <Routes location={location}>
-      {/* Public Routes */}
       <Route 
         path="/login" 
         element={
@@ -74,7 +76,6 @@ function AppRoutes() {
         } 
       />
 
-      {/* Protected App Routes - Wrapped in Persistent Layout */}
       <Route 
         element={
           <ProtectedRoute>
@@ -101,11 +102,40 @@ function AppRoutes() {
 }
 
 function AppContent() {
-  const { theme } = useSelector((state: RootState) => state.ui);
+  const dispatch = useDispatch();
+  const ui = useSelector((state: RootState) => state.ui);
+  const theme = ui?.theme || 'light';
+  const modal = ui?.modal || { isOpen: false, type: null, data: null };
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { pathname } = useLocation();
   
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  React.useEffect(() => {
+    const reactionsPostId = searchParams.get('reactions');
+    if (reactionsPostId && !modal.isOpen) {
+      dispatch(openModal({ type: 'REACTIONS', data: { postId: reactionsPostId } }));
+    }
+  }, [searchParams, modal.isOpen, dispatch]);
+
+  const handleCloseReactions = () => {
+    dispatch(closeModal());
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.delete('reactions');
+      newParams.delete('type');
+      return newParams;
+    }, { replace: true });
+  };
+
+ 
+  React.useEffect(() => {
+    if (modal.isOpen) {
+      dispatch(closeModal());
+    }
+  }, [pathname, dispatch]);
 
   return (
     <>
@@ -113,6 +143,11 @@ function AppContent() {
       <GlobalError />
       <ImageLightbox />
       <GlobalTooltip />
+      <DetailedReactionsModal 
+        isOpen={modal.isOpen && modal.type === 'REACTIONS'}
+        postId={modal.data?.postId}
+        onClose={handleCloseReactions}
+      />
     </>
   );
 }
