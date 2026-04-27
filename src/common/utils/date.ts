@@ -1,16 +1,31 @@
 /**
- * Formats a date string or Date object into a preferred format
- * @param date The date to format
- * @param format The desired format: 'DD-MM-YYYY' | 'YYYY-MM-DD' | 'MM-DD-YYYY'
- * @param separator The desired separator: '-' | '/'
- * @returns Formatted date string
+ * Parses a date string and ensures it's treated as UTC if no timezone is present
  */
+export const parseUTCDate = (date: string | Date): Date => {
+  if (date instanceof Date) return date;
+  
+  let dateToParse = date;
+  if (!date.includes('Z') && !date.includes('+')) {
+    // If it has a space, it's likely "YYYY-MM-DD HH:MM:SS"
+    if (date.includes(' ')) {
+      dateToParse = date.replace(' ', 'T') + 'Z';
+    } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Just a date
+      dateToParse = date + 'T00:00:00Z';
+    } else if (date.includes('T') && !date.endsWith('Z')) {
+      dateToParse = date + 'Z';
+    }
+  }
+  
+  return new Date(dateToParse);
+};
+
 export const formatDate = (
   date: string | Date, 
   format: 'DD-MM-YYYY' | 'YYYY-MM-DD' | 'MM-DD-YYYY' = 'DD-MM-YYYY',
   separator: '-' | '/' = '-'
 ): string => {
-  const d = new Date(date);
+  const d = parseUTCDate(date);
   
   if (isNaN(d.getTime())) {
     return 'Invalid Date';
@@ -36,7 +51,7 @@ export const formatTimeAgo = (
   format: 'DD-MM-YYYY' | 'YYYY-MM-DD' | 'MM-DD-YYYY' = 'DD-MM-YYYY',
   separator: '-' | '/' = '-'
 ): string => {
-  const d = new Date(date);
+  const d = parseUTCDate(date);
   if (isNaN(d.getTime())) return 'Invalid Date';
 
   const now = new Date();

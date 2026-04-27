@@ -1,33 +1,37 @@
 import api from '../../../api/api';
 import type { APIResource } from '../../../api/types/api-resource';
+import type { Conversation, MessageResponse } from '../types';
 import type { 
   GetMessagesRequest, 
-  GetMessagesResponse, 
-  SendMessageRequest,
-  SendMessageResponse 
+  CreateConversationRequest
 } from './types';
 
 export const MessagesService = {
   /**
-   * Fetch messages for a specific chat.
-   * URI: GET http://syncio.site/api/v1/messages
+   * Fetch conversations for the current user.
    */
-  getMessages: async (params: GetMessagesRequest): Promise<APIResource<GetMessagesResponse>> => {
-    const query = new URLSearchParams();
-    query.append('chatId', params.chatId);
-    if (params.page) query.append('page', params.page.toString());
-    if (params.limit) query.append('limit', params.limit.toString());
-
-    const response = await api.get<APIResource<GetMessagesResponse>>(`messages?${query.toString()}`);
+  getConversations: async (): Promise<APIResource<Conversation[]>> => {
+    const response = await api.get<APIResource<Conversation[]>>('messaging/conversations');
     return response.data;
   },
 
   /**
-   * Send a new message.
-   * URI: POST http://syncio.site/api/v1/messages
+   * Fetch messages for a specific conversation.
    */
-  sendMessage: async (data: SendMessageRequest): Promise<APIResource<SendMessageResponse>> => {
-    const response = await api.post<APIResource<SendMessageResponse>>('messages', data);
+  getMessages: async (params: GetMessagesRequest): Promise<APIResource<MessageResponse[]>> => {
+    const query = new URLSearchParams();
+    if (params.page !== undefined) query.append('page', params.page.toString());
+    if (params.size !== undefined) query.append('size', params.size.toString());
+
+    const response = await api.get<APIResource<MessageResponse[]>>(`messaging/conversations/${params.conversationId}/messages?${query.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Create a new conversation.
+   */
+  createConversation: async (data: CreateConversationRequest): Promise<APIResource<Conversation>> => {
+    const response = await api.post<APIResource<Conversation>>('messaging/conversations', data);
     return response.data;
   }
 };

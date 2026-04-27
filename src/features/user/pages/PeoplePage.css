@@ -309,6 +309,12 @@
   transition: all 0.3s ease;
 }
  
+.glass-action-btn.message:hover {
+  background: var(--primary-alpha-10);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
 .glass-action-btn.primary {
   background: var(--primary);
   color: white;

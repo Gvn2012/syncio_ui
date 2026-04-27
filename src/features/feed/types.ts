@@ -162,3 +162,44 @@ export interface PostReactionGroup {
   reactors: ReactorSummary[];
 }
 
+
+export enum CommentStatus {
+  VISIBLE = 'VISIBLE',
+  HIDDEN = 'HIDDEN',
+  DELETED = 'DELETED',
+  FLAGGED = 'FLAGGED'
+}
+
+export interface CommentAuthorInfo {
+  id: string;
+  username: string;
+  avatar: string;
+  active: boolean;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  parentCommentId: string | null;
+  userId: string;
+  content: string;
+  reactionCount: number;
+  replyCount: number;
+  status: CommentStatus;
+  isPinned: boolean;
+  isEdited: boolean;
+  editCount?: number;
+  createdAt: string;
+  editedAt?: string;
+  authorInfo: CommentAuthorInfo;
+  viewerReaction: ReactionType | null;
+}
+
+export interface CommentPagedResponse {
+  comments: Comment[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+  hasNext: boolean;
+}

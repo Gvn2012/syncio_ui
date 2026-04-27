@@ -174,8 +174,49 @@
 .profile-name-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 0.75rem;
+  width: 100%;
+}
+
+.profile-actions-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.message-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 8px 18px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px var(--primary-alpha-20);
+}
+
+.message-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--primary-alpha-30);
+}
+
+.message-btn:active {
+  transform: translateY(0);
+}
+
+.message-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.message-btn:hover svg {
+  transform: rotate(-10deg) scale(1.1);
 }
 
 .profile-name-row h1 {

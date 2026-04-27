@@ -9,6 +9,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { demoOrg } from '../data';
+import { CachedImage } from '../../../components/common/CachedImage';
 import './OrganizationScreen.css';
 
 export const OrganizationScreen: React.FC = () => {
@@ -18,7 +19,7 @@ export const OrganizationScreen: React.FC = () => {
     <div className="org-page">
       <header className="org-header-banner">
         <div className="org-brand">
-          <img src={org.logoUrl} alt={org.name} className="org-logo-large" />
+          <CachedImage src={org.logoUrl} alt={org.name} className="org-logo-large" />
           <div className="org-title-info">
             <h1>{org.name}</h1>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

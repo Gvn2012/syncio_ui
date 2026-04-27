@@ -42,6 +42,10 @@ export const FeedItem: React.FC<FeedItemProps> = React.memo(({ post }) => {
     }, { replace: true });
   };
 
+  const handleOpenComments = () => {
+    navigate(`/post/${post.id}/comments`, { replace: true });
+  };
+
   const handleNavigate = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (
@@ -133,6 +137,7 @@ export const FeedItem: React.FC<FeedItemProps> = React.memo(({ post }) => {
         viewerReaction={post.viewerReaction}
         sharedByViewer={post.sharedByViewer}
         onReaction={(type) => toggleReaction(type)}
+        onComment={handleOpenComments}
       />
     </article>
   );

@@ -12,12 +12,15 @@ import {
   ChevronRight,
   ShieldAlert,
   ShieldOff,
-  UserCircle
+  UserCircle,
+  MessageSquare
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { RelationshipService } from '../api/relationship.service';
+import { setActiveConversation } from '../../../store/slices/messagingSlice';
+import { generateDirectChatId } from '../../messages/utils/chatId';
 import type { 
   RelationshipUserSummaryResponse, 
   PendingFriendRequestResponse,
@@ -114,6 +117,13 @@ export const PeoplePage: React.FC = () => {
   const handleTabChange = (tab: TabType) => {
     setSearchParams({ v: tab });
     setPage(0);
+  };
+
+  const handleMessageClick = (userId: string) => {
+    if (!userId || !currentUserId) return;
+    const chatId = generateDirectChatId(currentUserId, userId);
+    dispatch(setActiveConversation(chatId));
+    navigate('/messages');
   };
 
   const handleAction = async (action: () => Promise<any>, successMsg: string) => {
@@ -220,6 +230,15 @@ export const PeoplePage: React.FC = () => {
         </div>
         
         <div className="person-actions-v2">
+          {person.userId !== currentUserId && (
+            <button 
+              className="glass-action-btn message" 
+              onClick={() => handleMessageClick(person.userId)}
+              title="Message"
+            >
+              <MessageSquare size={18} />
+            </button>
+          )}
           {isFriend && (
             <>
               <button 

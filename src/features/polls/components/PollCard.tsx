@@ -7,6 +7,7 @@ import {
 import '../pages/PollsPage.css';
 
 import type { Post as PostType } from '../../feed/types';
+import { CachedImage } from '../../../components/common/CachedImage';
 
 interface PollCardProps {
   post: PostType;
@@ -38,7 +39,7 @@ export const PollCard: React.FC<PollCardProps> = ({ post: initialPost }) => {
     <div className="poll-card">
       <div className="poll-card-header">
         <div className="poll-author">
-          <img src={author.avatar} alt={author.name} />
+          <CachedImage src={author.avatar} alt={author.name} />
           <div className="poll-author-info">
             <h4>{author.name}</h4>
             <span>{author.role} • {timestamp}</span>

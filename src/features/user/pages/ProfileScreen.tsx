@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Mail, 
   Phone, 
@@ -17,11 +17,14 @@ import {
   AlertTriangle,
   User as UserIcon,
   Camera,
-  Loader2
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { fetchUserDetail } from '../../../store/slices/userSlice';
+import { setActiveConversation } from '../../../store/slices/messagingSlice';
+import { generateDirectChatId } from '../../messages/utils/chatId';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { FeedItem } from '../../feed/components/FeedItem';
 import { demoFeedItems } from '../../feed/data';
@@ -42,6 +45,7 @@ import { useFormatDate } from '../../../common/hooks/useFormatDate';
 export const ProfileScreen: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { format } = useFormatDate();
   const { id: currentUserId, userDetail: currentUserDetail, userDetailLoading: currentUserLoading } = useSelector(
@@ -103,6 +107,13 @@ export const ProfileScreen: React.FC = () => {
     } else {
       setIsBlocked(false);
     }
+  };
+
+  const handleMessageClick = () => {
+    if (!userId || !currentUserId) return;
+    const chatId = generateDirectChatId(currentUserId, userId);
+    dispatch(setActiveConversation(chatId));
+    navigate('/messages');
   };
 
   const checkBlockStatus = async (uid: string) => {
@@ -306,6 +317,10 @@ export const ProfileScreen: React.FC = () => {
                 </div>
                 {!isOwnProfile && userId && (
                   <div className="profile-actions-area">
+                    <button className="message-btn" onClick={handleMessageClick}>
+                      <MessageSquare size={18} />
+                      <span>Message</span>
+                    </button>
                     <RelationshipActions targetId={userId} onStatusChange={handleStatusChange} />
                   </div>
                 )}

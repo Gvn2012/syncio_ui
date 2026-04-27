@@ -25,7 +25,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
     );
   }
 
-  const finalSrc = error ? (fallbackSrc || src) : (cachedSrc || fallbackSrc || src);
+  const finalSrc = error ? (fallbackSrc || '') : (cachedSrc || fallbackSrc || src);
 
   return (
     <img 

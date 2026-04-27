@@ -1,28 +1,21 @@
-export interface Message {
-  id: string;
-  senderId: string;
-  recipientId: string;
-  content: string;
-  timestamp: string;
-  isRead: boolean;
-}
+import type { MessageResponse } from '../types';
 
 export interface GetMessagesRequest {
-  chatId: string;
+  conversationId: string;
   page?: number;
-  limit?: number;
+  size?: number;
 }
 
-export interface GetMessagesResponse {
-  messages: Message[];
-  total: number;
+export interface GetMessagesResponse extends Array<MessageResponse> {}
+
+export interface CreateConversationRequest {
+  participantIds: string[];
+  name?: string;
+  type: 'DIRECT' | 'GROUP';
 }
 
 export interface SendMessageRequest {
-  recipientId: string;
+  conversationId: string;
+  senderId: string;
   content: string;
-}
-
-export interface SendMessageResponse {
-  message: Message;
 }

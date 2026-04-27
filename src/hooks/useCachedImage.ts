@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { urlCache } from '../common/utils/urlCache';
 
 const CACHE_NAME = 'syncio-image-cache-v1';
 
@@ -8,14 +9,18 @@ const blobUrlCache = new Map<string, string>();
 export const useCachedImage = (src: string | undefined) => {
   const [cachedSrc, setCachedSrc] = useState<string | undefined>(() => {
     if (src && blobUrlCache.has(src)) return blobUrlCache.get(src);
+    if (src && urlCache.isBad(src)) return undefined;
     return undefined;
   });
   const [isLoading, setIsLoading] = useState(() => {
     if (!src) return false;
-    if (src.startsWith('data:') || src.includes('ui-avatars.com') || blobUrlCache.has(src)) return false;
+    if (src.startsWith('data:') || src.startsWith('blob:') || src.includes('ui-avatars.com') || blobUrlCache.has(src) || urlCache.isBad(src)) return false;
     return true;
   });
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<Error | null>(() => {
+    if (src && urlCache.isBad(src)) return new Error('URL is marked as invalid (404)');
+    return null;
+  });
 
   useEffect(() => {
     if (!src) {
@@ -24,8 +29,16 @@ export const useCachedImage = (src: string | undefined) => {
       return;
     }
 
-    // Handle data URLs or specific fallbacks immediately
-    if (src.startsWith('data:') || src.includes('ui-avatars.com')) {
+    // Check if URL is known to be bad
+    if (urlCache.isBad(src)) {
+      setCachedSrc(undefined);
+      setIsLoading(false);
+      setError(new Error('URL is marked as invalid (404)'));
+      return;
+    }
+
+    // Handle data URLs, blob URLs, or specific fallbacks immediately
+    if (src.startsWith('data:') || src.startsWith('blob:') || src.includes('ui-avatars.com')) {
       setCachedSrc(src);
       setIsLoading(false);
       return;
@@ -49,6 +62,12 @@ export const useCachedImage = (src: string | undefined) => {
           blob = await cachedResponse.blob();
         } else {
           const response = await fetch(src);
+          
+          if (response.status === 404) {
+            urlCache.markBad(src);
+            throw new Error('Image not found (404)');
+          }
+
           if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
           
           const responseToCache = response.clone();

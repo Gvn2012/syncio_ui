@@ -1,0 +1,246 @@
+.comment-item-root {
+  width: 100%;
+  position: relative;
+  transition: background 0.3s ease;
+  border-radius: var(--radius-md);
+}
+
+.comment-item-root.pinned {
+  background: rgba(var(--primary-rgb, 99, 102, 241), 0.03);
+  border: 1px solid rgba(var(--primary-rgb, 99, 102, 241), 0.1);
+  padding: 8px;
+}
+
+.comment-main-container {
+  display: flex;
+  gap: 12px;
+}
+
+.comment-avatar {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.comment-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-bubble {
+  background: var(--bg-main);
+  padding: 12px 16px;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+}
+
+.comment-item-root.pinned .comment-bubble {
+  background: transparent;
+  border-color: transparent;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.author-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.author-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.pin-icon {
+  color: var(--primary);
+}
+
+.comment-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.edited-tag {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.comment-actions-trigger {
+  position: relative;
+}
+
+.menu-btn {
+  padding: 4px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.comment-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 10;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comment-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.comment-menu button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.comment-menu button.delete-action:hover {
+  background: rgba(var(--error-rgb, 239, 68, 68), 0.1);
+  color: var(--error);
+}
+
+.comment-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.comment-footer {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+  padding-left: 8px;
+}
+
+.engagement-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.engagement-btn svg {
+  flex-shrink: 0;
+}
+
+.engagement-btn:hover {
+  color: var(--primary);
+}
+
+.engagement-btn.active {
+  color: var(--primary);
+}
+
+.reply-input-wrapper {
+  margin-top: 12px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.load-more-replies {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(var(--primary-rgb, 99, 102, 241), 0.05);
+  margin-top: 8px;
+  width: fit-content;
+  transition: all 0.2s ease;
+}
+
+.load-more-replies:hover {
+  background: rgba(var(--primary-rgb, 99, 102, 241), 0.1);
+  transform: translateY(-1px);
+}
+
+.replies-btn {
+  color: var(--primary);
+}
+
+.replies-btn:hover {
+  color: var(--primary);
+  opacity: 0.8;
+}
+
+.replies-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-color);
+}
+
+.replies-loading {
+  padding: 12px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.loading-spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.comment-item-root.is-optimistic {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(0.5);
+  animation: optimisticPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes optimisticPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.4; }
+  100% { opacity: 0.6; }
+}
+
+.engagement-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

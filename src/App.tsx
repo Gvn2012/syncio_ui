@@ -19,9 +19,10 @@ import { PeoplePage } from './features/user/pages/PeoplePage';
 import { SyncDetailScreen } from './features/feed/pages/SyncDetailScreen';
 import { ImageLightbox } from './components/ImageLightbox';
 import { GlobalTooltip } from './components/GlobalTooltip';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { GlobalError } from './components/GlobalError';
 import { DetailedReactionsModal } from './features/feed/components/sub/DetailedReactionsModal';
+import { CommentModal } from './features/feed/components/sub/CommentModal';
 import { closeModal, openModal } from './store/slices/uiSlice';
 import { useDispatch } from 'react-redux';
 import './App.css';
@@ -94,6 +95,8 @@ function AppRoutes() {
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/people" element={<PeoplePage />} />
         <Route path="/sync/:postId" element={<SyncDetailScreen />} />
+        <Route path="/post/:postId/comments" element={<FeedScreen />} />
+        <Route path="/post/:postId/comments/:commentId/replies" element={<FeedScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -103,6 +106,7 @@ function AppRoutes() {
 
 function AppContent() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const ui = useSelector((state: RootState) => state.ui);
   const theme = ui?.theme || 'light';
   const modal = ui?.modal || { isOpen: false, type: null, data: null };
@@ -118,24 +122,35 @@ function AppContent() {
     if (reactionsPostId && !modal.isOpen) {
       dispatch(openModal({ type: 'REACTIONS', data: { postId: reactionsPostId } }));
     }
-  }, [searchParams, modal.isOpen, dispatch]);
 
-  const handleCloseReactions = () => {
+    // Handle /post/:postId/comments or /post/:postId/comments/:commentId/replies
+    const commentMatch = pathname.match(/^\/post\/([^/]+)\/comments(?:\/([^/]+)\/replies)?$/);
+    if (commentMatch) {
+      const postId = commentMatch[1];
+      const commentId = commentMatch[2] || null;
+      
+      // Update modal data if it's not in sync or not open
+      if (!modal.isOpen || modal.data?.commentId !== commentId || modal.data?.postId !== postId) {
+        dispatch(openModal({ type: 'COMMENTS', data: { postId, commentId } }));
+      }
+    }
+  }, [pathname, searchParams, modal.isOpen, dispatch]);
+
+  const handleCloseModal = () => {
     dispatch(closeModal());
+    
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       newParams.delete('reactions');
       newParams.delete('type');
+      newParams.delete('comments');
       return newParams;
     }, { replace: true });
-  };
 
- 
-  React.useEffect(() => {
-    if (modal.isOpen) {
-      dispatch(closeModal());
+    if (pathname.includes('/comments')) {
+      navigate('/', { replace: true });
     }
-  }, [pathname, dispatch]);
+  };
 
   return (
     <>
@@ -146,7 +161,13 @@ function AppContent() {
       <DetailedReactionsModal 
         isOpen={modal.isOpen && modal.type === 'REACTIONS'}
         postId={modal.data?.postId}
-        onClose={handleCloseReactions}
+        onClose={handleCloseModal}
+      />
+      <CommentModal 
+        isOpen={modal.isOpen && modal.type === 'COMMENTS'}
+        postId={modal.data?.postId}
+        commentId={modal.data?.commentId}
+        onClose={handleCloseModal}
       />
     </>
   );

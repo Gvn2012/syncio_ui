@@ -21,6 +21,7 @@ import { FeedService } from '../api/feed.service';
 import { currentUser } from '../../user/data';
 import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
 import './CreatePostScreen.css';
+import { CachedImage } from '../../../components/common/CachedImage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MAX_FILES, 
@@ -379,7 +380,7 @@ export const CreatePostScreen: React.FC = () => {
                                 setIsDropdownOpen(false);
                               }}
                             >
-                              <img src={user.avatar} alt={user.name} />
+                              <CachedImage src={user.avatar} alt={user.name} />
                               <div className="u-info">
                                 <span className="u-name">{user.name}</span>
                                 <span className="u-role">{user.role}</span>
@@ -403,7 +404,7 @@ export const CreatePostScreen: React.FC = () => {
               <h3>Post Preview</h3>
               <div className={`preview-placeholder preview-category-${category.toLowerCase()}`}>
                 <div className="preview-header">
-                  <img src={currentUser.profile?.avatarUrl} alt="You" className="p-avatar-img" />
+                  <CachedImage src={currentUser.profile?.avatarUrl} alt="You" className="p-avatar-img" />
                   <div className="p-info">
                     <div className="p-name">You</div>
                     <div className="p-meta">Sharing to Digital Curator</div>

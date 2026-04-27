@@ -7,6 +7,7 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 import type { Post as PostType } from '../../feed/types';
+import { CachedImage } from '../../../components/common/CachedImage';
 import '../pages/AnnouncementsPage.css';
 
 interface AnnouncementCardProps {
@@ -56,7 +57,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({ post }) => {
 
       <div className="announcement-footer">
         <div className="announcement-author">
-          <img src={author.avatar} alt={author.name} />
+          <CachedImage src={author.avatar} alt={author.name} />
           <div className="announcement-author-info">
             <span>{author.name}</span>
           </div>
