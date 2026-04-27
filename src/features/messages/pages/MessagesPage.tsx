@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Send, Search, Plus, MoreVertical, Phone, Video, Paperclip, Check, CheckCheck } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ConversationType, MessageStatusType } from '../types';
 import type { Conversation, MessageResponse } from '../types';
 import { useMessaging } from '../hooks/useMessaging';
+import { useParticipant } from '../hooks/useParticipant';
 import { 
   fetchConversations, 
   fetchMessages, 
@@ -11,18 +13,89 @@ import {
 } from '../../../store/slices/messagingSlice';
 import type { RootState, AppDispatch } from '../../../store';
 import { isDirectChatId, getParticipantsFromDirectChatId } from '../utils/chatId';
+import { UserAvatar } from '../../../components/UserAvatar';
 import './MessagesPage.css';
 
+const ChatItem: React.FC<{ 
+  conv: Conversation; 
+  isActive: boolean; 
+  currentUserId: string | null;
+  onClick: () => void;
+}> = ({ conv, isActive, currentUserId, onClick }) => {
+  const otherParticipantId = conv.participants.find(id => id !== currentUserId);
+  const { participant } = useParticipant(otherParticipantId);
+  const displayName = conv.name || participant?.name || (otherParticipantId ? `User ${otherParticipantId.substring(0, 4)}` : 'Sync User');
+
+  return (
+    <div 
+      className={`chat-item ${isActive ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
+      onClick={onClick}
+    >
+      <UserAvatar size={48} userId={otherParticipantId} src={participant?.avatar} showLink={false} />
+      <div className="chat-info">
+        <div className="chat-info-top">
+          <span className="chat-name">{displayName}</span>
+          <span className="chat-time">
+            {conv.lastMessage ? new Date(conv.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+          </span>
+        </div>
+        <div className="chat-info-bottom">
+          <div className="chat-last-msg">
+            {conv.lastMessage?.isDeleted ? 'This message was recalled' : conv.lastMessage?.content}
+          </div>
+          {(conv.unreadCount ?? 0) > 0 && <span className="unread-badge">{conv.unreadCount}</span>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ChatHeader: React.FC<{ 
+  activeChat: Conversation; 
+  currentUserId: string | null;
+  isOnline: boolean;
+}> = ({ activeChat, currentUserId, isOnline }) => {
+  const otherParticipantId = activeChat.participants.find(id => id !== currentUserId);
+  const { participant } = useParticipant(otherParticipantId || null);
+  const displayName = activeChat.name || participant?.name || (otherParticipantId ? `User ${otherParticipantId.substring(0, 8)}` : 'Sync User');
+
+  return (
+    <div className="chat-header">
+      <div className="chat-header-info">
+        <UserAvatar size={40} userId={otherParticipantId} src={participant?.avatar} showLink={true} />
+        <div className="chat-header-content">
+          <div className="chat-header-name">{displayName}</div>
+          <div className={`chat-header-status ${isOnline ? 'online' : 'offline'}`}>
+            <span className="status-dot"></span>
+            {isOnline ? 'Online' : 'Offline'}
+          </div>
+        </div>
+      </div>
+      <div className="chat-header-actions">
+        <button className="icon-btn"><Phone size={18} /></button>
+        <button className="icon-btn"><Video size={18} /></button>
+        <button className="icon-btn"><MoreVertical size={18} /></button>
+      </div>
+    </div>
+  );
+};
 export const MessagesPage: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { sendMessage, markAsSeen } = useMessaging();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const convid = searchParams.get('convid');
   
-  const { conversations, messagesByConversation, activeConversationId, loading } = useSelector(
+  const dispatch = useDispatch<AppDispatch>();
+  const { sendMessage, markAsSeen, editMessage, deleteMessage } = useMessaging();
+  
+  const { conversations, messagesByConversation, activeConversationId: storeActiveId, loading, onlineUsers } = useSelector(
     (state: RootState) => state.messaging
   );
   const currentUserId = useSelector((state: RootState) => state.user.id);
 
+  // Derive active ID from URL if store is not yet updated to prevent flicker
+  const activeConversationId = storeActiveId || convid;
+
   const [inputText, setInputText] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -36,20 +109,28 @@ export const MessagesPage: React.FC = () => {
     dispatch(fetchConversations());
   }, [dispatch]);
 
+  React.useLayoutEffect(() => {
+    if (convid) {
+      dispatch(setActiveConversation(convid));
+    } else {
+      dispatch(setActiveConversation(null));
+    }
+  }, [convid, dispatch]);
+
   const activeChat = useMemo(() => {
     if (!activeConversationId) return null;
     const existing = conversations.find(c => c.id === activeConversationId);
     if (existing) return existing;
 
-    // Handle Ephemeral DIRECT Chat
     if (isDirectChatId(activeConversationId)) {
       const participantIds = getParticipantsFromDirectChatId(activeConversationId);
-      
+      const otherId = participantIds.find(id => id !== currentUserId);
+
       return {
         id: activeConversationId,
         type: ConversationType.DIRECT,
         participants: participantIds,
-        name: 'New Chat',
+        name: `Chat with ${otherId?.substring(0, 8)}...`, 
         unreadCount: 0,
         isEphemeral: true
       } as Conversation & { isEphemeral: boolean };
@@ -61,6 +142,12 @@ export const MessagesPage: React.FC = () => {
     if (!activeConversationId) return [];
     return messagesByConversation[activeConversationId] || [];
   }, [activeConversationId, messagesByConversation]);
+
+  const isOtherParticipantOnline = useMemo(() => {
+    if (!activeChat || !currentUserId) return false;
+    const otherId = activeChat.participants.find(id => id !== currentUserId);
+    return otherId ? !!onlineUsers[otherId] : false;
+  }, [activeChat, currentUserId, onlineUsers]);
 
   useEffect(() => {
     if (activeConversationId && !messagesByConversation[activeConversationId]) {
@@ -87,9 +174,28 @@ export const MessagesPage: React.FC = () => {
   const handleSendMessage = () => {
     if (!inputText.trim() || !activeConversationId) return;
 
-    sendMessage(activeConversationId, inputText);
+    if (editingMessageId) {
+      editMessage(editingMessageId, inputText);
+      setEditingMessageId(null);
+    } else {
+      sendMessage(activeConversationId, inputText);
+    }
+    
     setInputText('');
     setTimeout(scrollToBottom, 100);
+  };
+
+  const handleEditClick = (msg: MessageResponse) => {
+    setEditingMessageId(msg.id);
+    setInputText(msg.content);
+    setExpandedMessageId(null);
+  };
+
+  const handleDeleteClick = (msg: MessageResponse) => {
+    if (window.confirm('Are you sure you want to recall this message?')) {
+      deleteMessage(msg.id);
+    }
+    setExpandedMessageId(null);
   };
 
   const handleFileSelect = () => {
@@ -107,41 +213,10 @@ export const MessagesPage: React.FC = () => {
     return <Check size={14} className="status-icon" />;
   };
 
-  const renderChatItem = (conv: Conversation) => {
-    const otherParticipantId = conv.participants.find(id => id !== currentUserId);
-    // Ideally we'd have participantDetails populated
-    const displayName = conv.name || otherParticipantId || 'Unknown User';
-
-    return (
-      <div 
-        key={conv.id} 
-        className={`chat-item ${activeConversationId === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
-        onClick={() => dispatch(setActiveConversation(conv.id))}
-      >
-        <div className="chat-avatar-wrapper">
-          <div className="chat-avatar-placeholder">
-            {displayName.charAt(0)}
-          </div>
-          {/* Online status indicator if available */}
-        </div>
-        
-        <div className="chat-info">
-          <div className="chat-info-top">
-            <span className="chat-name">{displayName}</span>
-            <span className="chat-time">
-              {conv.lastMessage ? new Date(conv.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-            </span>
-          </div>
-          <div className="chat-info-bottom">
-            <div className="chat-last-msg">
-              {conv.lastMessage?.isDeleted ? 'This message was recalled' : conv.lastMessage?.content}
-            </div>
-            {(conv.unreadCount ?? 0) > 0 && <span className="unread-badge">{conv.unreadCount}</span>}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const sortedConversations = useMemo(() => {
+    // Keep order stable instead of moving to top on every message
+    return [...conversations];
+  }, [conversations]);
 
   return (
     <div className="messages-container"> 
@@ -154,28 +229,23 @@ export const MessagesPage: React.FC = () => {
         </div>
         
         <div className="chats-scroll">
-          {conversations.map(renderChatItem)}
-          {loading && <div className="loading-text">Updating inbox...</div>}
+          {sortedConversations.map(conv => (
+            <ChatItem 
+              key={conv.id} 
+              conv={conv} 
+              isActive={activeConversationId === conv.id} 
+              currentUserId={currentUserId}
+              onClick={() => setSearchParams({ type: conv.type.toLowerCase(), convid: conv.id })}
+            />
+          ))}
+          {loading && sortedConversations.length === 0 && <div className="loading-text">Updating inbox...</div>}
         </div>
       </div>
 
       <div className="chat-window">
         {activeChat ? (
           <>
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <div className="chat-header-name">{activeChat.name}</div>
-                <div className="chat-header-status">
-                  <span className="status-dot"></span>
-                  Connected
-                </div>
-              </div>
-              <div className="chat-header-actions">
-                <button className="icon-btn"><Phone size={18} /></button>
-                <button className="icon-btn"><Video size={18} /></button>
-                <button className="icon-btn"><MoreVertical size={18} /></button>
-              </div>
-            </div>
+            <ChatHeader activeChat={activeChat} currentUserId={currentUserId} isOnline={isOtherParticipantOnline} />
 
             <div className="messages-scroll">
               {messages.map((msg, idx) => {
@@ -202,6 +272,12 @@ export const MessagesPage: React.FC = () => {
                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isSent && getStatusIcon(msg)}
+                          {isSent && isExpanded && !msg.isDeleted && (
+                            <div className="message-actions">
+                              <button onClick={(e) => { e.stopPropagation(); handleEditClick(msg); }}>Edit</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(msg); }}>Delete</button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -218,7 +294,7 @@ export const MessagesPage: React.FC = () => {
                 <input 
                   type="text" 
                   className="chat-input" 
-                  placeholder="Sync a message..."
+                  placeholder={editingMessageId ? "Edit message..." : "Sync a message..."}
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}

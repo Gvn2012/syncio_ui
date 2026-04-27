@@ -23,7 +23,6 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { fetchUserDetail } from '../../../store/slices/userSlice';
-import { setActiveConversation } from '../../../store/slices/messagingSlice';
 import { generateDirectChatId } from '../../messages/utils/chatId';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { FeedItem } from '../../feed/components/FeedItem';
@@ -112,8 +111,7 @@ export const ProfileScreen: React.FC = () => {
   const handleMessageClick = () => {
     if (!userId || !currentUserId) return;
     const chatId = generateDirectChatId(currentUserId, userId);
-    dispatch(setActiveConversation(chatId));
-    navigate('/messages');
+    navigate(`/messages?type=direct&convid=${chatId}`);
   };
 
   const checkBlockStatus = async (uid: string) => {

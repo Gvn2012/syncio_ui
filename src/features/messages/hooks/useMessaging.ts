@@ -1,13 +1,13 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import type { RootState } from '../../../store';
 import { 
   addMessage, 
   updateMessageStatus, 
   updateMessageContent, 
-  addConversation
+  addConversation,
+  setUserPresence
 } from '../../../store/slices/messagingSlice';
 import type { MessageResponse } from '../types';
 
@@ -15,14 +15,18 @@ export const useMessaging = () => {
   const dispatch = useDispatch();
   const userId = useSelector((state: RootState) => state.user.id);
   const stompClientRef = useRef<Client | null>(null);
-
   const connect = useCallback(() => {
     if (!userId) return;
 
-    const socket = new SockJS('/ws');
     const client = new Client({
-      webSocketFactory: () => socket,
+      brokerURL: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
+      connectHeaders: {
+        'X-User-Id': userId || '',
+      },
       debug: (msg) => console.log('STOMP:', msg),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
       onConnect: () => {
         console.log('Connected to WebSocket');
 
@@ -45,10 +49,18 @@ export const useMessaging = () => {
           } else if (update.type === 'MESSAGE_DELETED_LOCAL') {
           }
         });
+
+        client.subscribe(`/topic/presence`, (message) => {
+          const update = JSON.parse(message.body);
+          dispatch(setUserPresence(update));
+        });
       },
       onStompError: (frame) => {
         console.error('STOMP error', frame.headers['message']);
       },
+      onWebSocketClose: () => {
+        console.log('WebSocket closed, attempting to reconnect...');
+      }
     });
 
     client.activate();
@@ -80,17 +92,44 @@ export const useMessaging = () => {
     }
   };
 
-  const markAsSeen = (conversationId: string) => {
+  const markAsSeen = useCallback((conversationId: string) => {
     if (stompClientRef.current && stompClientRef.current.connected) {
       stompClientRef.current.publish({
-        destination: '/app/chat.seen',
+        destination: '/app/chat.read',
+        body: conversationId,
+      });
+    }
+  }, []);
+
+  const editMessage = useCallback((messageId: string, content: string) => {
+    if (stompClientRef.current && stompClientRef.current.connected) {
+      stompClientRef.current.publish({
+        destination: '/app/chat.edit',
         body: JSON.stringify({
-          conversationId,
-          userId,
+          id: messageId,
+          content
         }),
       });
     }
-  };
+  }, []);
 
-  return { sendMessage, markAsSeen };
+  const deleteMessage = useCallback((messageId: string) => {
+    if (stompClientRef.current && stompClientRef.current.connected) {
+      stompClientRef.current.publish({
+        destination: '/app/chat.delete',
+        body: messageId,
+      });
+    }
+  }, []);
+
+  const deleteConversation = useCallback((conversationId: string) => {
+    if (stompClientRef.current && stompClientRef.current.connected) {
+      stompClientRef.current.publish({
+        destination: '/app/conversation.delete',
+        body: conversationId,
+      });
+    }
+  }, []);
+
+  return { sendMessage, markAsSeen, editMessage, deleteMessage, deleteConversation };
 };

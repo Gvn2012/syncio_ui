@@ -42,11 +42,13 @@ export default defineConfig({
       '/api': {
         target: 'http://syncio.site',
         changeOrigin: true,
+        secure: false,
       },
       '/ws': {
         target: 'http://syncio.site',
         ws: true,
         changeOrigin: true,
+        secure: false,
       }
     }
   }

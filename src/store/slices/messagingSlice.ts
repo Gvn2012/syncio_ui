@@ -6,6 +6,7 @@ interface MessagingState {
   conversations: Conversation[];
   messagesByConversation: Record<string, MessageResponse[]>;
   activeConversationId: string | null;
+  onlineUsers: Record<string, boolean>;
   loading: boolean;
   error: string | null;
 }
@@ -14,6 +15,7 @@ const initialState: MessagingState = {
   conversations: [],
   messagesByConversation: {},
   activeConversationId: null,
+  onlineUsers: {},
   loading: false,
   error: null,
 };
@@ -67,19 +69,20 @@ const messagingSlice = createSlice({
             const conv = state.conversations.find(c => c.id === conversationId);
       if (conv) {
         conv.lastMessage = action.payload;
-        // Move to top of list
-        state.conversations = [conv, ...state.conversations.filter(c => c.id !== conversationId)];
       }
     },
-    updateMessageStatus: (state, action: PayloadAction<{ messageId: string; conversationId: string; userId: string; status: any }>) => {
-      const { messageId, conversationId, userId, status } = action.payload;
+    updateMessageStatus: (state, action: PayloadAction<{ messageIds?: string[], messageId?: string; conversationId: string; userId: string; status: any }>) => {
+      const { messageIds, messageId, conversationId, userId, status } = action.payload;
       const messages = state.messagesByConversation[conversationId];
       if (messages) {
-        const msg = messages.find(m => m.id === messageId);
-        if (msg) {
-          if (!msg.status) msg.status = {};
-          msg.status[userId] = status;
-        }
+        const idsToUpdate = messageIds || (messageId ? [messageId] : []);
+        idsToUpdate.forEach(id => {
+          const msg = messages.find(m => m.id === id);
+          if (msg) {
+            if (!msg.status) msg.status = {};
+            msg.status[userId] = { status, updateTime: new Date().toISOString() } as any;
+          }
+        });
       }
     },
     updateMessageContent: (state, action: PayloadAction<MessageResponse>) => {
@@ -101,12 +104,17 @@ const messagingSlice = createSlice({
       if (!state.conversations.find(c => c.id === action.payload.id)) {
         state.conversations.unshift(action.payload);
       }
+    },
+    setUserPresence: (state, action: PayloadAction<{ userId: string, status: 'ONLINE' | 'OFFLINE' }>) => {
+      state.onlineUsers[action.payload.userId] = action.payload.status === 'ONLINE';
     }
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchConversations.pending, (state) => {
-        state.loading = true;
+        if (state.conversations.length === 0) {
+          state.loading = true;
+        }
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.loading = false;
@@ -118,7 +126,7 @@ const messagingSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         const { conversationId, messages } = action.payload;
-        state.messagesByConversation[conversationId] = messages.reverse(); // Backend usually returns newest first, we want oldest first for chat flow
+        state.messagesByConversation[conversationId] = messages.reverse(); 
       });
   },
 });
@@ -129,7 +137,8 @@ export const {
   updateMessageStatus, 
   updateMessageContent, 
   setConversations,
-  addConversation
+  addConversation,
+  setUserPresence
 } = messagingSlice.actions;
 
 export default messagingSlice.reducer;
