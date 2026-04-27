@@ -7,6 +7,7 @@ interface MessagingState {
   messagesByConversation: Record<string, MessageResponse[]>;
   activeConversationId: string | null;
   onlineUsers: Record<string, boolean>;
+  typingUsers: Record<string, string[]>;
   loading: boolean;
   error: string | null;
 }
@@ -16,6 +17,7 @@ const initialState: MessagingState = {
   messagesByConversation: {},
   activeConversationId: null,
   onlineUsers: {},
+  typingUsers: {},
   loading: false,
   error: null,
 };
@@ -62,9 +64,11 @@ const messagingSlice = createSlice({
       if (!state.messagesByConversation[conversationId]) {
         state.messagesByConversation[conversationId] = [];
       }
-      const exists = state.messagesByConversation[conversationId].some(m => m.id === action.payload.id);
-      if (!exists) {
+      const index = state.messagesByConversation[conversationId].findIndex(m => m.id === action.payload.id);
+      if (index === -1) {
         state.messagesByConversation[conversationId].push(action.payload);
+      } else {
+        state.messagesByConversation[conversationId][index] = action.payload;
       }
             const conv = state.conversations.find(c => c.id === conversationId);
       if (conv) {
@@ -107,6 +111,19 @@ const messagingSlice = createSlice({
     },
     setUserPresence: (state, action: PayloadAction<{ userId: string, status: 'ONLINE' | 'OFFLINE' }>) => {
       state.onlineUsers[action.payload.userId] = action.payload.status === 'ONLINE';
+    },
+    setTyping: (state, action: PayloadAction<{ conversationId: string; userId: string; isTyping: boolean }>) => {
+      const { conversationId, userId, isTyping } = action.payload;
+      if (!state.typingUsers[conversationId]) {
+        state.typingUsers[conversationId] = [];
+      }
+      if (isTyping) {
+        if (!state.typingUsers[conversationId].includes(userId)) {
+          state.typingUsers[conversationId].push(userId);
+        }
+      } else {
+        state.typingUsers[conversationId] = state.typingUsers[conversationId].filter(id => id !== userId);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -138,7 +155,8 @@ export const {
   updateMessageContent, 
   setConversations,
   addConversation,
-  setUserPresence
+  setUserPresence,
+  setTyping
 } = messagingSlice.actions;
 
 export default messagingSlice.reducer;

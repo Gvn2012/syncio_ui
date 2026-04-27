@@ -14,6 +14,14 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  overflow: hidden;
+}
+
+.messages-container.sidebar-collapsed .chat-list-panel {
+  width: 0;
+  border-right: none;
+  opacity: 0;
 }
 
 .chat-list-header {
@@ -338,6 +346,10 @@
   gap: 2px;
 }
 
+.sidebar-toggle {
+  margin-right: 4px;
+}
+
 .chat-header-avatar {
   width: 40px;
   height: 40px;
@@ -355,18 +367,33 @@
 
 .chat-header-status {
   font-size: 0.75rem;
-  color: #10b981;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
+.chat-header-status.online {
+  color: #10b981;
+}
+
+.chat-header-status.offline {
+  color: var(--text-muted);
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
-  background-color: #10b981;
   border-radius: 50%;
+}
+
+.chat-header-status.online .status-dot {
+  background-color: #10b981;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.chat-header-status.offline .status-dot {
+  background-color: var(--text-muted);
+  box-shadow: none;
 }
 
 .messages-scroll {
@@ -493,7 +520,6 @@
   border-bottom-left-radius: 4px;
 }
 
-/* Image Grid in Message Bubbles */
 .message-image-grid {
   display: grid;
   gap: 4px;
@@ -566,12 +592,29 @@
 .status-icon {
   display: inline-flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
   vertical-align: middle;
+  opacity: 0.7;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.typing-text {
+  font-style: italic;
+  opacity: 0.8;
+  animation: typingPulse 1.5s infinite;
+}
+
+@keyframes typingPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
 }
 
 .status-icon.read {
-  color: var(--primary);
+  color: #3b82f6; /* Premium WhatsApp/Telegram blue */
+  opacity: 1;
+  transform: scale(1.1);
+  filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
 }
 
 @keyframes slideInUp {
@@ -695,9 +738,25 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  color: var(--text-muted);
+  position: relative;
+  height: 100%;
+}
+
+.empty-chat-header {
+  padding: 16px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.empty-chat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
   gap: 1rem;
 }
 

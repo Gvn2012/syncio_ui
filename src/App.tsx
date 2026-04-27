@@ -25,6 +25,7 @@ import { DetailedReactionsModal } from './features/feed/components/sub/DetailedR
 import { CommentModal } from './features/feed/components/sub/CommentModal';
 import { closeModal, openModal } from './store/slices/uiSlice';
 import { useDispatch } from 'react-redux';
+import { useMessaging } from './features/messages/hooks/useMessaging';
 import './App.css';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -112,6 +113,9 @@ function AppContent() {
   const modal = ui?.modal || { isOpen: false, type: null, data: null };
   const [searchParams, setSearchParams] = useSearchParams();
   const { pathname } = useLocation();
+  
+  // Keep WebSocket connection alive app-wide
+  useMessaging();
   
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

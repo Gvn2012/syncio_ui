@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Client } from '@stomp/stompjs';
 import type { RootState } from '../../../store';
@@ -7,16 +7,26 @@ import {
   updateMessageStatus, 
   updateMessageContent, 
   addConversation,
-  setUserPresence
+  setUserPresence,
+  fetchConversations,
+  setTyping
 } from '../../../store/slices/messagingSlice';
 import type { MessageResponse } from '../types';
+
+let globalStompClient: Client | null = null;
+let subscribersCount = 0;
 
 export const useMessaging = () => {
   const dispatch = useDispatch();
   const userId = useSelector((state: RootState) => state.user.id);
-  const stompClientRef = useRef<Client | null>(null);
+
   const connect = useCallback(() => {
     if (!userId) return;
+
+    if (globalStompClient) {
+      subscribersCount++;
+      return;
+    }
 
     const client = new Client({
       brokerURL: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
@@ -33,6 +43,13 @@ export const useMessaging = () => {
         client.subscribe(`/user/${userId}/queue/messages`, (message) => {
           const msg: MessageResponse = JSON.parse(message.body);
           dispatch(addMessage(msg));
+          
+          if (msg.senderId !== userId) {
+            client.publish({
+              destination: '/app/chat.ack',
+              body: msg.id
+            });
+          }
         });
 
         client.subscribe(`/user/${userId}/queue/status`, (message) => {
@@ -50,10 +67,18 @@ export const useMessaging = () => {
           }
         });
 
+        client.subscribe(`/user/${userId}/queue/typing`, (message) => {
+          const update = JSON.parse(message.body);
+          dispatch(setTyping(update));
+        });
+
         client.subscribe(`/topic/presence`, (message) => {
           const update = JSON.parse(message.body);
           dispatch(setUserPresence(update));
         });
+
+        // Hydrate conversation states & missed messages on reconnect
+        dispatch(fetchConversations() as any);
       },
       onStompError: (frame) => {
         console.error('STOMP error', frame.headers['message']);
@@ -64,13 +89,17 @@ export const useMessaging = () => {
     });
 
     client.activate();
-    stompClientRef.current = client;
+    globalStompClient = client;
+    subscribersCount = 1;
   }, [userId, dispatch]);
 
   const disconnect = useCallback(() => {
-    if (stompClientRef.current) {
-      stompClientRef.current.deactivate();
-      stompClientRef.current = null;
+    if (subscribersCount > 0) {
+      subscribersCount--;
+      if (subscribersCount === 0 && globalStompClient) {
+        globalStompClient.deactivate();
+        globalStompClient = null;
+      }
     }
   }, []);
 
@@ -80,10 +109,27 @@ export const useMessaging = () => {
   }, [connect, disconnect]);
 
   const sendMessage = (conversationId: string, content: string) => {
-    if (stompClientRef.current && stompClientRef.current.connected) {
-      stompClientRef.current.publish({
+    if (globalStompClient && globalStompClient.connected) {
+      const messageId = crypto.randomUUID();
+      
+      const optimisticMsg: MessageResponse = {
+        id: messageId,
+        conversationId,
+        senderId: userId || '',
+        content,
+        timestamp: new Date().toISOString(),
+        status: {},
+        isEdited: false,
+        isDeleted: false,
+        isOptimistic: true
+      };
+      
+      dispatch(addMessage(optimisticMsg));
+
+      globalStompClient.publish({
         destination: '/app/chat.send',
         body: JSON.stringify({
+          id: messageId,
           conversationId,
           senderId: userId,
           content,
@@ -93,8 +139,8 @@ export const useMessaging = () => {
   };
 
   const markAsSeen = useCallback((conversationId: string) => {
-    if (stompClientRef.current && stompClientRef.current.connected) {
-      stompClientRef.current.publish({
+    if (globalStompClient && globalStompClient.connected) {
+      globalStompClient.publish({
         destination: '/app/chat.read',
         body: conversationId,
       });
@@ -102,8 +148,8 @@ export const useMessaging = () => {
   }, []);
 
   const editMessage = useCallback((messageId: string, content: string) => {
-    if (stompClientRef.current && stompClientRef.current.connected) {
-      stompClientRef.current.publish({
+    if (globalStompClient && globalStompClient.connected) {
+      globalStompClient.publish({
         destination: '/app/chat.edit',
         body: JSON.stringify({
           id: messageId,
@@ -114,8 +160,8 @@ export const useMessaging = () => {
   }, []);
 
   const deleteMessage = useCallback((messageId: string) => {
-    if (stompClientRef.current && stompClientRef.current.connected) {
-      stompClientRef.current.publish({
+    if (globalStompClient && globalStompClient.connected) {
+      globalStompClient.publish({
         destination: '/app/chat.delete',
         body: messageId,
       });
@@ -123,13 +169,26 @@ export const useMessaging = () => {
   }, []);
 
   const deleteConversation = useCallback((conversationId: string) => {
-    if (stompClientRef.current && stompClientRef.current.connected) {
-      stompClientRef.current.publish({
+    if (globalStompClient && globalStompClient.connected) {
+      globalStompClient.publish({
         destination: '/app/conversation.delete',
         body: conversationId,
       });
     }
   }, []);
 
-  return { sendMessage, markAsSeen, editMessage, deleteMessage, deleteConversation };
+  const sendTyping = useCallback((conversationId: string, recipientId: string, isTyping: boolean) => {
+    if (globalStompClient && globalStompClient.connected) {
+      globalStompClient.publish({
+        destination: '/app/chat.typing',
+        body: JSON.stringify({
+          conversationId,
+          recipientId,
+          isTyping: isTyping.toString()
+        }),
+      });
+    }
+  }, []);
+
+  return { sendMessage, markAsSeen, editMessage, deleteMessage, deleteConversation, sendTyping };
 };

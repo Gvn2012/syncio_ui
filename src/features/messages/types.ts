@@ -33,6 +33,7 @@ export interface Message {
   isEdited: boolean;
   isDeleted: boolean;
   updatedAt?: string;
+  isOptimistic?: boolean;
 }
 
 export interface Conversation {

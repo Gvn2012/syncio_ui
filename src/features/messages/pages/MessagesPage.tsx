@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Send, Search, Plus, MoreVertical, Phone, Video, Paperclip, Check, CheckCheck } from 'lucide-react';
+import { Send, Search, Plus, MoreVertical, Phone, Video, Paperclip, Check, CheckCheck, Menu, Eye, Clock } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ConversationType, MessageStatusType } from '../types';
 import type { Conversation, MessageResponse } from '../types';
@@ -54,7 +54,9 @@ const ChatHeader: React.FC<{
   activeChat: Conversation; 
   currentUserId: string | null;
   isOnline: boolean;
-}> = ({ activeChat, currentUserId, isOnline }) => {
+  isTyping: boolean;
+  onToggleSidebar: () => void;
+}> = ({ activeChat, currentUserId, isOnline, isTyping, onToggleSidebar }) => {
   const otherParticipantId = activeChat.participants.find(id => id !== currentUserId);
   const { participant } = useParticipant(otherParticipantId || null);
   const displayName = activeChat.name || participant?.name || (otherParticipantId ? `User ${otherParticipantId.substring(0, 8)}` : 'Sync User');
@@ -62,12 +64,13 @@ const ChatHeader: React.FC<{
   return (
     <div className="chat-header">
       <div className="chat-header-info">
+        <button className="icon-btn sidebar-toggle" onClick={onToggleSidebar}><Menu size={20} /></button>
         <UserAvatar size={40} userId={otherParticipantId} src={participant?.avatar} showLink={true} />
         <div className="chat-header-content">
           <div className="chat-header-name">{displayName}</div>
           <div className={`chat-header-status ${isOnline ? 'online' : 'offline'}`}>
             <span className="status-dot"></span>
-            {isOnline ? 'Online' : 'Offline'}
+            {isTyping ? <span className="typing-text">typing...</span> : (isOnline ? 'Online' : 'Offline')}
           </div>
         </div>
       </div>
@@ -84,9 +87,9 @@ export const MessagesPage: React.FC = () => {
   const convid = searchParams.get('convid');
   
   const dispatch = useDispatch<AppDispatch>();
-  const { sendMessage, markAsSeen, editMessage, deleteMessage } = useMessaging();
+  const { sendMessage, markAsSeen, editMessage, deleteMessage, sendTyping } = useMessaging();
   
-  const { conversations, messagesByConversation, activeConversationId: storeActiveId, loading, onlineUsers } = useSelector(
+  const { conversations, messagesByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers } = useSelector(
     (state: RootState) => state.messaging
   );
   const currentUserId = useSelector((state: RootState) => state.user.id);
@@ -96,7 +99,9 @@ export const MessagesPage: React.FC = () => {
 
   const [inputText, setInputText] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -149,17 +154,27 @@ export const MessagesPage: React.FC = () => {
     return otherId ? !!onlineUsers[otherId] : false;
   }, [activeChat, currentUserId, onlineUsers]);
 
+  const isOtherParticipantTyping = useMemo(() => {
+    if (!activeChat || !currentUserId) return false;
+    const typingList = typingUsers[activeChat.id] || [];
+    const otherId = activeChat.participants.find(id => id !== currentUserId);
+    return otherId ? typingList.includes(otherId) : false;
+  }, [activeChat, currentUserId, typingUsers]);
+
   useEffect(() => {
     if (activeConversationId && !messagesByConversation[activeConversationId]) {
       if (!isDirectChatId(activeConversationId) || conversations.find(c => c.id === activeConversationId)) {
         dispatch(fetchMessages({ conversationId: activeConversationId }));
       }
     }
+  }, [activeConversationId, dispatch, messagesByConversation, conversations]);
+
+  useEffect(() => {
     if (activeConversationId) {
       markAsSeen(activeConversationId);
       setTimeout(scrollToBottom, 100);
     }
-  }, [activeConversationId, dispatch, markAsSeen]);
+  }, [activeConversationId, messages.length, markAsSeen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -170,6 +185,24 @@ export const MessagesPage: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+    
+    if (activeConversationId) {
+      const otherParticipantId = activeChat?.participants.find(id => id !== currentUserId);
+      if (otherParticipantId) {
+        sendTyping(activeConversationId, otherParticipantId, true);
+        
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        typingTimeoutRef.current = setTimeout(() => {
+          sendTyping(activeConversationId, otherParticipantId, false);
+        }, 2000);
+      }
+    }
+  };
 
   const handleSendMessage = () => {
     if (!inputText.trim() || !activeConversationId) return;
@@ -199,13 +232,15 @@ export const MessagesPage: React.FC = () => {
   };
 
   const handleFileSelect = () => {
-    // Logic for file selection
   };
 
   const getStatusIcon = (msg: MessageResponse) => {
+    if (msg.isOptimistic) {
+      return <Clock size={12} className="status-icon" />;
+    }
     const statuses = Object.values(msg.status || {});
     if (statuses.some(s => s.status === MessageStatusType.SEEN)) {
-      return <CheckCheck size={14} className="status-icon read" />;
+      return <Eye size={14} className="status-icon read" />;
     }
     if (statuses.some(s => s.status === MessageStatusType.DELIVERED)) {
       return <CheckCheck size={14} className="status-icon" />;
@@ -214,12 +249,11 @@ export const MessagesPage: React.FC = () => {
   };
 
   const sortedConversations = useMemo(() => {
-    // Keep order stable instead of moving to top on every message
     return [...conversations];
   }, [conversations]);
 
   return (
-    <div className="messages-container"> 
+    <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}> 
       <div className="chat-list-panel">
         <div className="chat-list-header">
           <h2>Conversations</h2>
@@ -245,7 +279,7 @@ export const MessagesPage: React.FC = () => {
       <div className="chat-window">
         {activeChat ? (
           <>
-            <ChatHeader activeChat={activeChat} currentUserId={currentUserId} isOnline={isOtherParticipantOnline} />
+            <ChatHeader activeChat={activeChat} currentUserId={currentUserId} isOnline={isOtherParticipantOnline} isTyping={isOtherParticipantTyping} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             <div className="messages-scroll">
               {messages.map((msg, idx) => {
@@ -296,7 +330,7 @@ export const MessagesPage: React.FC = () => {
                   className="chat-input" 
                   placeholder={editingMessageId ? "Edit message..." : "Sync a message..."}
                   value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 />
                 <button className="send-btn" onClick={handleSendMessage}><Send size={18} /></button>
@@ -305,9 +339,14 @@ export const MessagesPage: React.FC = () => {
           </>
         ) : (
           <div className="empty-chat-state">
-            <Search size={48} />
-            <h3> Your Sync Communications</h3>
-            <p>Select an individual or group sync to begin collaborating.</p>
+            <div className="empty-chat-header">
+               <button className="icon-btn sidebar-toggle" onClick={() => setIsSidebarOpen(!isSidebarOpen)}><Menu size={24} /></button>
+            </div>
+            <div className="empty-chat-content">
+              <Search size={48} />
+              <h3> Your Sync Communications</h3>
+              <p>Select an individual or group sync to begin collaborating.</p>
+            </div>
           </div>
         )}
       </div>
