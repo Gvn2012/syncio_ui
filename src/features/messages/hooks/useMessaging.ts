@@ -9,7 +9,8 @@ import {
   addConversation,
   setUserPresence,
   fetchConversations,
-  setTyping
+  setTyping,
+  setConnectionStatus
 } from '../../../store/slices/messagingSlice';
 import type { MessageResponse } from '../types';
 
@@ -35,10 +36,11 @@ export const useMessaging = () => {
       },
       debug: (msg) => console.log('STOMP:', msg),
       reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
+      heartbeatIncoming: 30000,
+      heartbeatOutgoing: 30000,
       onConnect: () => {
         console.log('Connected to WebSocket');
+        dispatch(setConnectionStatus(true));
 
         client.subscribe(`/user/${userId}/queue/messages`, (message) => {
           const msg: MessageResponse = JSON.parse(message.body);
@@ -77,7 +79,6 @@ export const useMessaging = () => {
           dispatch(setUserPresence(update));
         });
 
-        // Hydrate conversation states & missed messages on reconnect
         dispatch(fetchConversations() as any);
       },
       onStompError: (frame) => {
@@ -85,6 +86,7 @@ export const useMessaging = () => {
       },
       onWebSocketClose: () => {
         console.log('WebSocket closed, attempting to reconnect...');
+        dispatch(setConnectionStatus(false));
       }
     });
 
@@ -99,6 +101,7 @@ export const useMessaging = () => {
       if (subscribersCount === 0 && globalStompClient) {
         globalStompClient.deactivate();
         globalStompClient = null;
+        dispatch(setConnectionStatus(false));
       }
     }
   }, []);

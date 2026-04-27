@@ -89,7 +89,7 @@ export const MessagesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { sendMessage, markAsSeen, editMessage, deleteMessage, sendTyping } = useMessaging();
   
-  const { conversations, messagesByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers } = useSelector(
+  const { conversations, messagesByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers, isConnected } = useSelector(
     (state: RootState) => state.messaging
   );
   const currentUserId = useSelector((state: RootState) => state.user.id);
@@ -162,12 +162,11 @@ export const MessagesPage: React.FC = () => {
   }, [activeChat, currentUserId, typingUsers]);
 
   useEffect(() => {
-    if (activeConversationId && !messagesByConversation[activeConversationId]) {
-      if (!isDirectChatId(activeConversationId) || conversations.find(c => c.id === activeConversationId)) {
-        dispatch(fetchMessages({ conversationId: activeConversationId }));
-      }
+    if (activeConversationId && (!messagesByConversation[activeConversationId] || isConnected)) {
+      dispatch(fetchMessages({ conversationId: activeConversationId }));
     }
-  }, [activeConversationId, dispatch, messagesByConversation, conversations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationId, dispatch, isConnected]);
 
   useEffect(() => {
     if (activeConversationId) {
@@ -215,6 +214,17 @@ export const MessagesPage: React.FC = () => {
     }
     
     setInputText('');
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (activeChat && currentUserId) {
+      const otherParticipantId = activeChat.participants.find(id => id !== currentUserId);
+      if (otherParticipantId) {
+        sendTyping(activeConversationId, otherParticipantId, false);
+      }
+    }
+
     setTimeout(scrollToBottom, 100);
   };
 

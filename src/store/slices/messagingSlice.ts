@@ -10,6 +10,7 @@ interface MessagingState {
   typingUsers: Record<string, string[]>;
   loading: boolean;
   error: string | null;
+  isConnected: boolean;
 }
 
 const initialState: MessagingState = {
@@ -20,6 +21,7 @@ const initialState: MessagingState = {
   typingUsers: {},
   loading: false,
   error: null,
+  isConnected: false,
 };
 
 export const fetchConversations = createAsyncThunk(
@@ -124,6 +126,9 @@ const messagingSlice = createSlice({
       } else {
         state.typingUsers[conversationId] = state.typingUsers[conversationId].filter(id => id !== userId);
       }
+    },
+    setConnectionStatus: (state, action: PayloadAction<boolean>) => {
+      state.isConnected = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -156,7 +161,8 @@ export const {
   setConversations,
   addConversation,
   setUserPresence,
-  setTyping
+  setTyping,
+  setConnectionStatus
 } = messagingSlice.actions;
 
 export default messagingSlice.reducer;
