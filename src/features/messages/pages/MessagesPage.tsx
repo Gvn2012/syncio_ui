@@ -44,7 +44,7 @@ export const MessagesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, sendTyping, deleteConversation } = useMessaging();
   
-  const { callState, callerInfo, duration, isMuted, remoteStream, initiateCall, answerCall, rejectCall, endCall, toggleMute } = useWebRTC();
+  const { callState, callerInfo, duration, isMuted, localStream, remoteStream, initiateCall, answerCall, rejectCall, endCall, toggleMute } = useWebRTC();
   
   const { conversations, messagesByConversation, paginationByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers, isConnected } = useSelector(
     (state: RootState) => state.messaging

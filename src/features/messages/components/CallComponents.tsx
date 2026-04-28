@@ -1,7 +1,8 @@
 import React from 'react';
-import { Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, ShieldCheck } from 'lucide-react';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { useParticipant } from '../hooks/useParticipant';
+import { CallVisualizer } from './CallVisualizer';
 import './CallComponents.css';
 
 interface IncomingCallModalProps {
@@ -28,15 +29,15 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({ callerInfo
         
         <div className="incoming-call-info">
           <h2>{displayName}</h2>
-          <p>Incoming Voice Call...</p>
+          <p>Incoming Call</p>
         </div>
 
         <div className="incoming-call-actions">
           <button onClick={onReject} className="btn-reject">
-            <PhoneOff size={28} />
+            <PhoneOff size={32} />
           </button>
           <button onClick={onAccept} className="btn-accept">
-            <Phone size={28} />
+            <Phone size={32} />
           </button>
         </div>
       </div>
@@ -50,9 +51,10 @@ interface ActiveCallBarProps {
   onToggleMute: () => void;
   onEndCall: () => void;
   remoteStream: MediaStream | null;
+  localStream?: MediaStream | null;
 }
 
-export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({ duration, isMuted, onToggleMute, onEndCall, remoteStream }) => {
+export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({ duration, isMuted, onToggleMute, onEndCall, remoteStream, localStream }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -74,6 +76,13 @@ export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({ duration, isMuted,
         <span className="timer-text">
           {formatTime(duration)}
         </span>
+        <div className="secure-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>
+          <ShieldCheck size={12} /> Secure
+        </div>
+      </div>
+
+      <div className="visualizer-container">
+        <CallVisualizer stream={remoteStream} height={32} />
       </div>
 
       <div className="active-call-controls">
