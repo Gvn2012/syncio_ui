@@ -9,13 +9,19 @@ import {
   addConversation,
   setUserPresence,
   fetchConversations,
+  fetchTotalUnreadCount,
   setTyping,
-  setConnectionStatus
+  setConnectionStatus,
+  removeConversation,
+  removeMessage,
+  recallMessage as recallMessageThunk,
+  deleteMessage as deleteMessageThunk
 } from '../../../store/slices/messagingSlice';
 import type { MessageResponse } from '../types';
 
 let globalStompClient: Client | null = null;
 let subscribersCount = 0;
+const pendingMessages = new Map<string, { conversationId: string; content: string; timestamp: number }>();
 
 export const useMessaging = () => {
   const dispatch = useDispatch();
@@ -42,8 +48,26 @@ export const useMessaging = () => {
         console.log('Connected to WebSocket');
         dispatch(setConnectionStatus(true));
 
+        // Retry pending messages on connect
+        pendingMessages.forEach((msg, id) => {
+          client.publish({
+            destination: '/app/chat.send',
+            body: JSON.stringify({
+              id,
+              conversationId: msg.conversationId,
+              senderId: userId,
+              content: msg.content,
+            }),
+          });
+        });
+
         client.subscribe(`/user/${userId}/queue/messages`, (message) => {
           const msg: MessageResponse = JSON.parse(message.body);
+          
+          if (msg.senderId === userId) {
+            pendingMessages.delete(msg.id);
+          }
+
           dispatch(addMessage(msg));
           
           if (msg.senderId !== userId) {
@@ -65,7 +89,13 @@ export const useMessaging = () => {
             dispatch(updateMessageContent(update.message));
           } else if (update.type === 'CONVERSATION_RESTORED' || update.type === 'CONVERSATION_CREATED') {
             dispatch(addConversation(update.conversation));
+          } else if (update.type === 'CONVERSATION_DELETED') {
+            dispatch(removeConversation(update.conversationId));
           } else if (update.type === 'MESSAGE_DELETED_LOCAL') {
+            dispatch(removeMessage({ 
+              conversationId: update.conversationId || '', 
+              messageId: update.messageId 
+            }));
           }
         });
 
@@ -80,6 +110,7 @@ export const useMessaging = () => {
         });
 
         dispatch(fetchConversations() as any);
+        dispatch(fetchTotalUnreadCount() as any);
       },
       onStompError: (frame) => {
         console.error('STOMP error', frame.headers['message']);
@@ -108,27 +139,54 @@ export const useMessaging = () => {
 
   useEffect(() => {
     connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
+    
+    const retryInterval = setInterval(() => {
+      if (globalStompClient && globalStompClient.connected && pendingMessages.size > 0) {
+        const now = Date.now();
+        pendingMessages.forEach((msg, id) => {
+          if (now - msg.timestamp > 5000) {
+            console.log(`Retrying message ${id}...`);
+            globalStompClient?.publish({
+              destination: '/app/chat.send',
+              body: JSON.stringify({
+                id,
+                conversationId: msg.conversationId,
+                senderId: userId,
+                content: msg.content,
+              }),
+            });
+            msg.timestamp = now;
+          }
+        });
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(retryInterval);
+      disconnect();
+    };
+  }, [connect, disconnect, userId]);
 
   const sendMessage = (conversationId: string, content: string) => {
-    if (globalStompClient && globalStompClient.connected) {
-      const messageId = crypto.randomUUID();
-      
-      const optimisticMsg: MessageResponse = {
-        id: messageId,
-        conversationId,
-        senderId: userId || '',
-        content,
-        timestamp: new Date().toISOString(),
-        status: {},
-        isEdited: false,
-        isDeleted: false,
-        isOptimistic: true
-      };
-      
-      dispatch(addMessage(optimisticMsg));
+    const messageId = crypto.randomUUID();
+    
+    const optimisticMsg: MessageResponse = {
+      id: messageId,
+      conversationId,
+      senderId: userId || '',
+      content,
+      timestamp: new Date().toISOString(),
+      status: {},
+      isEdited: false,
+      isRecalled: false,
+      isOptimistic: true
+    };
+    
+    dispatch(addMessage(optimisticMsg));
 
+    pendingMessages.set(messageId, { conversationId, content, timestamp: Date.now() });
+
+    if (globalStompClient && globalStompClient.connected) {
       globalStompClient.publish({
         destination: '/app/chat.send',
         body: JSON.stringify({
@@ -162,14 +220,13 @@ export const useMessaging = () => {
     }
   }, []);
 
-  const deleteMessage = useCallback((messageId: string) => {
-    if (globalStompClient && globalStompClient.connected) {
-      globalStompClient.publish({
-        destination: '/app/chat.delete',
-        body: messageId,
-      });
-    }
-  }, []);
+  const deleteMessage = useCallback((conversationId: string, messageId: string) => {
+    dispatch(deleteMessageThunk({ conversationId, messageId }) as any);
+  }, [dispatch]);
+
+  const recallMessage = useCallback((messageId: string) => {
+    dispatch(recallMessageThunk(messageId) as any);
+  }, [dispatch]);
 
   const deleteConversation = useCallback((conversationId: string) => {
     if (globalStompClient && globalStompClient.connected) {
@@ -193,5 +250,5 @@ export const useMessaging = () => {
     }
   }, []);
 
-  return { sendMessage, markAsSeen, editMessage, deleteMessage, deleteConversation, sendTyping };
+  return { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, deleteConversation, sendTyping };
 };

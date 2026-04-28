@@ -7,31 +7,40 @@ import type {
 } from './types';
 
 export const MessagesService = {
-  /**
-   * Fetch conversations for the current user.
-   */
+
   getConversations: async (): Promise<APIResource<Conversation[]>> => {
     const response = await api.get<APIResource<Conversation[]>>('messaging/conversations');
     return response.data;
   },
 
-  /**
-   * Fetch messages for a specific conversation.
-   */
+
   getMessages: async (params: GetMessagesRequest): Promise<APIResource<MessageResponse[]>> => {
     const query = new URLSearchParams();
-    if (params.page !== undefined) query.append('page', params.page.toString());
+    if (params.before !== undefined) query.append('before', params.before);
     if (params.size !== undefined) query.append('size', params.size.toString());
 
     const response = await api.get<APIResource<MessageResponse[]>>(`messaging/conversations/${params.conversationId}/messages?${query.toString()}`);
     return response.data;
   },
 
-  /**
-   * Create a new conversation.
-   */
+
   createConversation: async (data: CreateConversationRequest): Promise<APIResource<Conversation>> => {
     const response = await api.post<APIResource<Conversation>>('messaging/conversations', data);
+    return response.data;
+  },
+
+  recallMessage: async (messageId: string): Promise<APIResource<void>> => {
+    const response = await api.delete<APIResource<void>>(`messaging/messages/${messageId}/recall`);
+    return response.data;
+  },
+
+  deleteMessage: async (messageId: string): Promise<APIResource<void>> => {
+    const response = await api.delete<APIResource<void>>(`messaging/messages/${messageId}`);
+    return response.data;
+  },
+
+  getTotalUnreadCount: async (): Promise<APIResource<number>> => {
+    const response = await api.get<APIResource<number>>('messaging/unread-count');
     return response.data;
   }
 };

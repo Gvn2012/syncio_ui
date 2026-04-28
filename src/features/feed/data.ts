@@ -1,7 +1,6 @@
 import type { Post } from './types';
 import { PostCategory, PostStatus, PostVisibility, TaskStatus } from './types';
 import avatarCurator from '../../assets/demo/avatar_curator.png';
-import workspaceOverview from '../../assets/demo/workspace_overview.png';
 
 const MOCK_ORG_ID = '3e253011-8fc1-460d-83de-a9a3b689fd5b';
 
@@ -27,13 +26,13 @@ export const demoFeedItems: Post[] = [
     commentCount: 5,
     reactionCount: 24,
     shareCount: 2,
-    viewCount: '1240',
+    viewCount: 156,
     isShared: false,
     isPinned: false,
     likes: 24,
     comments: 5,
     attachments: [
-      { id: 'att1', url: workspaceOverview, type: 'IMAGE' }
+      { id: 'att-1', url: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80', type: 'IMAGE', fileName: 'planning.jpg', position: 0, mimeType: 'image/jpeg', uploadStatus: 'SUCCESSFUL' }
     ]
   },
   {
@@ -57,7 +56,7 @@ export const demoFeedItems: Post[] = [
     commentCount: 8,
     reactionCount: 12,
     shareCount: 0,
-    viewCount: '450',
+    viewCount: 450,
     isShared: false,
     isPinned: false,
     likes: 12,
@@ -92,7 +91,7 @@ export const demoFeedItems: Post[] = [
     commentCount: 32,
     reactionCount: 45,
     shareCount: 5,
-    viewCount: '2300',
+    viewCount: 2300,
     isShared: false,
     isPinned: false,
     likes: 45,
@@ -132,7 +131,7 @@ export const demoFeedItems: Post[] = [
     commentCount: 15,
     reactionCount: 120,
     shareCount: 10,
-    viewCount: '5600',
+    viewCount: 5600,
     isShared: false,
     isPinned: true,
     likes: 120,
@@ -166,7 +165,7 @@ export const demoFeedItems: Post[] = [
     commentCount: 3,
     reactionCount: 15,
     shareCount: 1,
-    viewCount: '890',
+    viewCount: 89,
     isShared: false,
     isPinned: false,
     likes: 15,
@@ -201,7 +200,7 @@ export const demoFeedItems: Post[] = [
     commentCount: 1,
     reactionCount: 5,
     shareCount: 0,
-    viewCount: '210',
+    viewCount: 210,
     isShared: false,
     isPinned: false,
     likes: 5,
@@ -236,7 +235,7 @@ export const demoFeedItems: Post[] = [
     commentCount: 8,
     reactionCount: 45,
     shareCount: 2,
-    viewCount: '1500',
+    viewCount: 1500,
     isShared: false,
     isPinned: false,
     likes: 45,

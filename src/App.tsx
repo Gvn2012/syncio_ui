@@ -26,6 +26,7 @@ import { CommentModal } from './features/feed/components/sub/CommentModal';
 import { closeModal, openModal } from './store/slices/uiSlice';
 import { useDispatch } from 'react-redux';
 import { useMessaging } from './features/messages/hooks/useMessaging';
+import { setUserId } from './store/slices/messagingSlice';
 import './App.css';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -114,9 +115,14 @@ function AppContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { pathname } = useLocation();
   
-  // Keep WebSocket connection alive app-wide
+  const user = useSelector((state: RootState) => state.user);
+  
   useMessaging();
   
+  React.useEffect(() => {
+    dispatch(setUserId(user.id || null));
+  }, [user.id, dispatch]);
+
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
@@ -127,13 +133,11 @@ function AppContent() {
       dispatch(openModal({ type: 'REACTIONS', data: { postId: reactionsPostId } }));
     }
 
-    // Handle /post/:postId/comments or /post/:postId/comments/:commentId/replies
     const commentMatch = pathname.match(/^\/post\/([^/]+)\/comments(?:\/([^/]+)\/replies)?$/);
     if (commentMatch) {
       const postId = commentMatch[1];
       const commentId = commentMatch[2] || null;
       
-      // Update modal data if it's not in sync or not open
       if (!modal.isOpen || modal.data?.commentId !== commentId || modal.data?.postId !== postId) {
         dispatch(openModal({ type: 'COMMENTS', data: { postId, commentId } }));
       }

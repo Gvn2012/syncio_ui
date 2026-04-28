@@ -79,7 +79,9 @@ export const FeedItem: React.FC<FeedItemProps> = React.memo(({ post }) => {
         </div>
       </div>
         
-      <MediaGallery attachments={post.attachments} />
+      {post.attachments && post.attachments.length > 0 && (
+        <MediaGallery attachments={post.attachments || []} />
+      )}
 
       {(isTask || isPoll || (post.attachments && post.attachments.length > 0)) && (
         <div className="feed-polymorphic-content">
@@ -135,7 +137,7 @@ export const FeedItem: React.FC<FeedItemProps> = React.memo(({ post }) => {
         commentCount={post.commentCount}
         shareCount={post.shareCount}
         viewerReaction={post.viewerReaction}
-        sharedByViewer={post.sharedByViewer}
+        sharedByViewer={post.sharedByViewer ?? false}
         onReaction={(type) => toggleReaction(type)}
         onComment={handleOpenComments}
       />

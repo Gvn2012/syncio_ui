@@ -115,7 +115,7 @@ export interface Post extends AuditableEntity {
   postCategory: PostCategory;
   authorId: string;
   authorInfo?: AuthorInfo;
-  author?: { name: string; avatar: string; role: string }; // Legacy support
+  author?: { id?: string; name: string; avatar: string; role: string };
   content: string;
   contentHtml?: string;
   excerpt?: string;
@@ -130,15 +130,15 @@ export interface Post extends AuditableEntity {
   isShared: boolean;
   isPinned: boolean;
   viewerReaction?: ReactionType | null;
-  sharedByViewer: boolean;
+  sharedByViewer?: boolean;
   
   poll?: PostPoll;
   task?: PostTask;
   announcement?: PostAnnouncement;
-  attachments: PostMediaAttachment[];
+  attachments?: PostMediaAttachment[];
   
-  mentions: string[];
-  tags: string[];
+  mentions?: string[];
+  tags?: string[];
   metadata?: string;
   topReactions?: ReactionType[];
   

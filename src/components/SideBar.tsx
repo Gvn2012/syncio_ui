@@ -19,6 +19,7 @@ import { fetchFriendRequestCount } from '../store/slices/notificationSlice';
 import type { RootState, AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
 import { UserAvatar } from './UserAvatar';
+import { selectTotalUnreadCount } from '../store/slices/messagingSlice';
 import './SideBar.css';
 
 const navItems = [
@@ -36,6 +37,7 @@ export const SideBar: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { friendRequestCount } = useSelector((state: RootState) => state.notification);
   const { id, userDetail } = useSelector((state: RootState) => state.user);
+  const totalUnreadCount = useSelector(selectTotalUnreadCount);
 
   useEffect(() => {
     if (id && !userDetail) {
@@ -81,6 +83,9 @@ export const SideBar: React.FC = () => {
                 <span>{item.label}</span>
                 {item.id === 'people' && friendRequestCount > 0 && (
                   <span className="nav-badge">{friendRequestCount}</span>
+                )}
+                {item.id === 'messages' && totalUnreadCount > 0 && (
+                  <span className="nav-badge">{totalUnreadCount}</span>
                 )}
               </Link>
             </li>

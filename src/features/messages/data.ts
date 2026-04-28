@@ -9,59 +9,57 @@ export const mockConversations: Conversation[] = [
     id: 'conv-1',
     type: ConversationType.GROUP,
     name: 'Design & UX Sync',
-    participants: [
+    participants: ['a1b1c1d1', 'b2c2d2e2', 'c3d3e3f3'],
+    participantDetails: [
       { id: 'a1b1c1d1', name: 'Elena Vance', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena', role: 'Digital Curator', orgId: MOCK_ORG_ID, isOnline: true },
       { id: 'b2c2d2e2', name: 'Marcus Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus', role: 'Project Lead', orgId: MOCK_ORG_ID, isOnline: true },
       { id: 'c3d3e3f3', name: 'Sarah Jenkins', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', role: 'Operations', orgId: MOCK_ORG_ID, isOnline: false }
     ],
     lastMessage: {
-      text: 'I think the backdrop-blur levels are finally stable.',
-      timestamp: '10:45 AM',
-      senderName: 'Elena Vance'
+      id: 'm1', conversationId: '1', senderId: 'b2c2d2e2', content: 'I think the backdrop-blur levels are finally stable.', timestamp: '2023-11-20T10:30:00Z', status: {}, isEdited: false, isRecalled: false
     },
     unreadCount: 3,
-    isPinned: true
+    updatedAt: '2023-11-20T10:30:00Z'
   },
   {
-    id: 'conv-2',
-    type: ConversationType.INDIVIDUAL,
-    name: 'Marcus Chen',
-    participants: [
+    id: '2',
+    name: '',
+    type: ConversationType.DIRECT,
+    participants: ['b2c2d2e2'],
+    participantDetails: [
       { id: 'b2c2d2e2', name: 'Marcus Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus', role: 'Project Lead', orgId: MOCK_ORG_ID, isOnline: true }
     ],
     lastMessage: {
-      text: 'Can we sync on the Q3 strategy doc tomorrow?',
-      timestamp: '1d ago',
-      senderName: 'Marcus Chen'
+      id: 'm2', conversationId: '2', senderId: 'b2c2d2e2', content: 'Can we sync on the Q3 strategy doc tomorrow?', timestamp: '2023-11-20T09:15:00Z', status: {}, isEdited: false, isRecalled: false
     },
-    unreadCount: 0
+    unreadCount: 0,
+    updatedAt: '2023-11-20T09:15:00Z'
   },
   {
-    id: 'conv-ext',
-    type: ConversationType.INDIVIDUAL,
-    name: 'Marcus Aurelius',
-    participants: [
+    id: '3',
+    name: '',
+    type: ConversationType.DIRECT,
+    participants: ['ext-1'],
+    participantDetails: [
       { id: 'ext-1', name: 'Marcus Aurelius', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aurelius', role: 'External Advisor', orgId: EXTERNAL_ORG_ID, isOnline: true }
     ],
     lastMessage: {
-      text: 'The architectural review is complete.',
-      timestamp: '9:00 AM',
-      senderName: 'Marcus Aurelius'
+      id: 'm3', conversationId: '3', senderId: 'ext-1', content: 'The architectural review is complete.', timestamp: '2023-11-19T16:45:00Z', status: {}, isEdited: false, isRecalled: false
     },
-    unreadCount: 1
+    unreadCount: 1,
+    updatedAt: '2023-11-19T16:45:00Z'
   },
   {
-    id: 'conv-3',
+    id: '4',
+    name: 'Ops Sync',
     type: ConversationType.GROUP,
-    name: 'Core Engineering',
-    participants: [
+    participants: ['d4e4f4g4', 'b2c2d2e2'],
+    participantDetails: [
       { id: 'd4e4f4g4', name: 'David Miller', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', role: 'Infrastructure', orgId: MOCK_ORG_ID, isOnline: true },
       { id: 'b2c2d2e2', name: 'Marcus Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus', role: 'Project Lead', orgId: MOCK_ORG_ID, isOnline: true }
     ],
     lastMessage: {
-      text: 'Server maintenance scheduled for Saturday.',
-      timestamp: '2d ago',
-      senderName: 'David Miller'
+      id: 'm4', conversationId: '4', senderId: 'd4e4f4g4', content: 'Server maintenance scheduled for Saturday.', timestamp: '2023-11-18T14:20:00Z', status: {}, isEdited: false, isRecalled: false
     },
     unreadCount: 0
   }

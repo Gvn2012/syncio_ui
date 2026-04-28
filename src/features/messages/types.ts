@@ -9,6 +9,14 @@ export enum MessageStatusType {
   SEEN = 'SEEN'
 }
 
+export enum MessageContentType {
+  TEXT = 'TEXT',
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  IMAGE_PENDING = 'IMAGE_PENDING',
+  VIDEO_PENDING = 'VIDEO_PENDING'
+}
+
 export interface StatusInfo {
   status: MessageStatusType;
   updateTime: string;
@@ -23,15 +31,41 @@ export interface Participant {
   isOnline?: boolean;
 }
 
+export interface MediaItem {
+  id: string;
+  batchId: string;
+  conversationId: string;
+  fileName: string;
+  contentType: string;
+  mediaType: 'IMAGE' | 'VIDEO';
+  status: string;
+  bucketName?: string;
+  metadata?: Record<string, any>;
+  uploadUrl?: string;
+  downloadUrl?: string;
+  size?: number;
+  duration?: number;
+  resolution?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
+  batchId?: string;
   senderId: string;
   content: string;
+  type?: MessageContentType;
+  mediaId?: string;
+  mediaUrl?: string;
+  mediaSize?: number;
+  mediaContentType?: string;
+  mediaItems?: MediaItem[];
   timestamp: string;
   status: Record<string, StatusInfo>;
   isEdited: boolean;
-  isDeleted: boolean;
+  isRecalled: boolean;
   updatedAt?: string;
   isOptimistic?: boolean;
 }
@@ -46,6 +80,8 @@ export interface Conversation {
   unreadCount?: number;
   isPinned?: boolean;
   deletedAtPerUser?: Record<string, string>;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MessageResponse extends Message {}

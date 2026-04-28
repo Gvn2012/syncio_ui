@@ -2,7 +2,7 @@ import type { MessageResponse } from '../types';
 
 export interface GetMessagesRequest {
   conversationId: string;
-  page?: number;
+  before?: string;
   size?: number;
 }
 
