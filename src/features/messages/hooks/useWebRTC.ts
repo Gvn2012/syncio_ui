@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useMessaging } from './useMessaging';
+import { stompService } from '../../../services/StompService';
 
 export enum CallState {
   IDLE = 'IDLE',
@@ -9,7 +9,6 @@ export enum CallState {
 }
 
 export const useWebRTC = () => {
-  const { sendSignal } = useMessaging();
   const [callState, setCallState] = useState<CallState>(CallState.IDLE);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -20,6 +19,50 @@ export const useWebRTC = () => {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const targetUserIdRef = useRef<string | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+  const dialingToneRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const ringtone = new Audio('https://assets.mixkit.co/active_storage/sfx/1351/1351-preview.mp3');
+    ringtone.loop = true;
+    ringtoneRef.current = ringtone;
+
+    const dialing = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+    dialing.loop = true;
+    dialingToneRef.current = dialing;
+    
+    return () => {
+      ringtone.pause();
+      dialing.pause();
+      ringtoneRef.current = null;
+      dialingToneRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (callState === CallState.INBOUND_RINGING) {
+      ringtoneRef.current?.play().catch(e => console.warn('Ringtone play failed:', e));
+    } else {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
+      }
+    }
+
+    if (callState === CallState.OUTBOUND_RINGING) {
+      dialingToneRef.current?.play().catch(e => console.warn('Dialing tone play failed:', e));
+    } else {
+      if (dialingToneRef.current) {
+        dialingToneRef.current.pause();
+        dialingToneRef.current.currentTime = 0;
+      }
+    }
+  }, [callState]);
+
+  const sendSignal = useCallback((signal: any) => {
+    stompService.publish('/app/call.signal', signal);
+  }, []);
 
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
@@ -43,11 +86,11 @@ export const useWebRTC = () => {
     };
 
     pc.onconnectionstatechange = () => {
+      console.log('WebRTC Connection State:', pc.connectionState);
       if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
         endCall();
       } else if (pc.connectionState === 'connected') {
         setCallState(CallState.CONNECTED);
-        // Stop all other audio players in the chat
         window.dispatchEvent(new CustomEvent('audioPlay', { detail: { id: 'voice-call' } }));
       }
     };
@@ -88,6 +131,7 @@ export const useWebRTC = () => {
     targetUserIdRef.current = null;
     setDuration(0);
     setIsMuted(false);
+    iceCandidatesQueue.current = [];
   }, [callState, sendSignal]);
 
   const initiateCall = async (recipientId: string) => {
@@ -111,22 +155,35 @@ export const useWebRTC = () => {
   };
 
   const answerCall = async () => {
-    if (!targetUserIdRef.current || !pcRef.current) return;
+    if (!targetUserIdRef.current || !pcRef.current) {
+      console.warn('Cannot answer call: missing target or peer connection');
+      return;
+    }
     
     const stream = await initLocalStream();
     if (!stream) return endCall();
 
     const pc = pcRef.current;
-    stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    sendSignal({
-      type: 'CALL_ANSWER',
-      recipientId: targetUserIdRef.current,
-      payload: answer
+    const existingTracks = pc.getSenders().map(s => s.track);
+    stream.getTracks().forEach(track => {
+      if (!existingTracks.includes(track)) {
+        pc.addTrack(track, stream);
+      }
     });
+
+    try {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      sendSignal({
+        type: 'CALL_ANSWER',
+        recipientId: targetUserIdRef.current,
+        payload: answer
+      });
+    } catch (err) {
+      console.error('Error creating answer:', err);
+      endCall();
+    }
   };
 
   const rejectCall = () => {
@@ -165,12 +222,30 @@ export const useWebRTC = () => {
           setCallState(CallState.INBOUND_RINGING);
           
           const pc = createPeerConnection();
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.payload));
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.payload));
+            while (iceCandidatesQueue.current.length > 0) {
+              const candidate = iceCandidatesQueue.current.shift();
+              if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+          } catch (err) {
+            console.error('Error setting remote description:', err);
+            endCall();
+          }
           break;
 
         case 'CALL_ANSWER':
           if (pcRef.current) {
-            await pcRef.current.setRemoteDescription(new RTCSessionDescription(signal.payload));
+            try {
+              await pcRef.current.setRemoteDescription(new RTCSessionDescription(signal.payload));
+              while (iceCandidatesQueue.current.length > 0) {
+                const candidate = iceCandidatesQueue.current.shift();
+                if (candidate) await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+              }
+            } catch (err) {
+              console.error('Error setting remote description from answer:', err);
+              endCall();
+            }
           }
           break;
 
@@ -181,6 +256,8 @@ export const useWebRTC = () => {
             } catch (err) {
               console.error('Error adding ICE candidate', err);
             }
+          } else {
+            iceCandidatesQueue.current.push(signal.payload);
           }
           break;
 
@@ -197,7 +274,16 @@ export const useWebRTC = () => {
     return () => window.removeEventListener('webrtc-signal', handleSignal as any);
   }, [callState, createPeerConnection, endCall, sendSignal]);
 
-  // Duration timer
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (callState !== CallState.IDLE) {
+        endCall();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [callState, endCall]);
+
   useEffect(() => {
     let interval: any;
     if (callState === CallState.CONNECTED) {

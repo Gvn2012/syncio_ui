@@ -512,6 +512,16 @@ export const MessagesPage: React.FC = () => {
           onReject={rejectCall} 
         />
       )}
+      {callState === CallState.CONNECTED && (
+        <ActiveCallBar 
+          duration={duration} 
+          isMuted={isMuted} 
+          onToggleMute={toggleMute} 
+          onEndCall={endCall} 
+          remoteStream={remoteStream}
+          localStream={localStream}
+        />
+      )}
       <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
       <div className="chat-list-panel">
         <div className="chat-list-header">
@@ -555,15 +565,6 @@ export const MessagesPage: React.FC = () => {
               }}
             />
 
-            {callState === CallState.CONNECTED && (
-              <ActiveCallBar 
-                duration={duration} 
-                isMuted={isMuted} 
-                onToggleMute={toggleMute} 
-                onEndCall={endCall} 
-                remoteStream={remoteStream}
-              />
-            )}
 
             <div className="messages-scroll" ref={messagesScrollRef} onScroll={handleMessagesScroll}>
               {pagination.loadingMore && <div className="loading-more"><Loader size={20} className="animate-spin" /></div>}

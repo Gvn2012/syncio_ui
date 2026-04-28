@@ -1,0 +1,64 @@
+.connection-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  animation: connectionBannerSlideDown 0.3s ease-out;
+}
+
+/* Light theme */
+[data-theme="light"] .connection-banner {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  color: #1a1a1a;
+}
+
+/* Dark theme */
+[data-theme="dark"] .connection-banner {
+  background: linear-gradient(90deg, #92400e, #9a3412);
+  color: #fef3c7;
+}
+
+.connection-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: connectionDotPulse 1.5s ease-in-out infinite;
+}
+
+[data-theme="light"] .connection-banner__dot {
+  background: #1a1a1a;
+}
+
+[data-theme="dark"] .connection-banner__dot {
+  background: #fef3c7;
+}
+
+.connection-banner__text {
+  line-height: 1;
+}
+
+@keyframes connectionBannerSlideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes connectionDotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

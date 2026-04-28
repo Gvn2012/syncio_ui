@@ -74,15 +74,16 @@ export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({ duration, isMuted,
       <div className="call-timer">
         <div className="timer-dot" />
         <span className="timer-text">
-          {formatTime(duration)}
+          {duration > 0 ? formatTime(duration) : 'Connecting...'}
         </span>
-        <div className="secure-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>
+        <div className="secure-badge">
           <ShieldCheck size={12} /> Secure
         </div>
       </div>
 
       <div className="visualizer-container">
-        <CallVisualizer stream={remoteStream} height={32} />
+        <CallVisualizer stream={localStream || null} height={32} color="rgba(255,255,255,0.4)" />
+        <CallVisualizer stream={remoteStream} height={32} color="#ffffff" />
       </div>
 
       <div className="active-call-controls">

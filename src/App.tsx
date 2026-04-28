@@ -25,7 +25,8 @@ import { DetailedReactionsModal } from './features/feed/components/sub/DetailedR
 import { CommentModal } from './features/feed/components/sub/CommentModal';
 import { closeModal, openModal } from './store/slices/uiSlice';
 import { useDispatch } from 'react-redux';
-import { useMessaging } from './features/messages/hooks/useMessaging';
+import { useStompLifecycle } from './hooks/useStompLifecycle';
+import { ConnectionBanner } from './components/ConnectionBanner';
 import { setUserId } from './store/slices/messagingSlice';
 import './App.css';
 
@@ -117,7 +118,7 @@ function AppContent() {
   
   const user = useSelector((state: RootState) => state.user);
   
-  useMessaging();
+  useStompLifecycle();
   
   React.useEffect(() => {
     dispatch(setUserId(user.id || null));
@@ -162,6 +163,7 @@ function AppContent() {
 
   return (
     <>
+      <ConnectionBanner />
       <AppRoutes />
       <GlobalError />
       <ImageLightbox />

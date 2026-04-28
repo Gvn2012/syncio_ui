@@ -64,7 +64,7 @@ export const CallVisualizer: React.FC<CallVisualizerProps> = ({ stream, color = 
       ref={canvasRef} 
       width={120} 
       height={height} 
-      style={{ opacity: 0.8 }}
+      className="call-visualizer-canvas"
     />
   );
 };
