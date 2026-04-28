@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader, Play } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import type { MediaItem } from '../types';
 import { uploadService, isUrlExpired } from '../../../api/upload.service';
 import { CachedImage } from '../../../components/common/CachedImage';
 import { VideoPlayer } from './VideoPlayer';
+import { AudioPlayer } from './AudioPlayer';
 import { checkImageCache } from '../../../hooks/useCachedImage';
 
 export const getMediaUrl = (path: string | undefined | null, signedUrl?: string) => {
@@ -31,11 +32,10 @@ interface MediaItemRendererProps {
 
 export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onClick, isPending, prefetchedUrl, priority }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(prefetchedUrl || null);
-  const [isInteracted, setIsInteracted] = useState(false);
+
   const signedUrlRef = useRef<string | null>(prefetchedUrl || null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync ref with state
   useEffect(() => {
     signedUrlRef.current = signedUrl;
   }, [signedUrl]);
@@ -54,12 +54,10 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
       }
     }
 
-    // If we have an HTTP URL already, use it as the current signedUrl
     if (item.downloadUrl?.startsWith('http') && !signedUrlRef.current) {
       setSignedUrl(item.downloadUrl);
     }
 
-    // If there's nothing to resolve and no current signedUrl, try uploadUrl as last resort
     if (!urlToResolve || urlToResolve.startsWith('http')) {
       if (!signedUrlRef.current && item.uploadUrl?.startsWith('http')) {
         setSignedUrl(item.uploadUrl);
@@ -71,10 +69,9 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
     const fetchUrl = async (retryCount = 0) => {
       if (signedUrlRef.current && !signedUrlRef.current.startsWith('http') && !isUrlExpired(signedUrlRef.current)) return; 
       
-      // Check physical cache first to prevent download-urls request
       const isCached = await checkImageCache(urlToResolve);
       if (isCached && isMounted) {
-        setSignedUrl(urlToResolve!); // CachedImage will handle this if cacheKey is passed
+        setSignedUrl(urlToResolve!); 
         return;
       }
 
@@ -90,19 +87,19 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
         if (isMounted && retryCount < 2) {
           setTimeout(() => fetchUrl(retryCount + 1), 3000);
         } else if (isMounted && !signedUrlRef.current) {
-          setSignedUrl(''); // Mark as failed
+          setSignedUrl('');
         }
       });
     };
 
-    const shouldFetchImmediately = priority && (item.mediaType === 'IMAGE' || isInteracted);
+    const shouldFetchImmediately = priority;
 
     if (shouldFetchImmediately) {
       fetchUrl();
       return () => { isMounted = false; };
     }
 
-    if (item.mediaType === 'IMAGE' || isInteracted) {
+    if (item.mediaType === 'IMAGE' || item.mediaType === 'VIDEO') {
       const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
           fetchUrl();
@@ -121,14 +118,9 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
     }
 
     return () => { isMounted = false; };
-  }, [item.downloadUrl, item.uploadUrl, item.conversationId, item.mediaType, item.id, prefetchedUrl, priority, isInteracted]);
+  }, [item.downloadUrl, item.uploadUrl, item.conversationId, item.mediaType, item.id, prefetchedUrl, priority]);
 
-  const handleVideoClick = () => {
-    setIsInteracted(true);
-  };
-
-  // Loading state: only show spinner if signedUrl is null and it's an image or video being loaded
-  if (isPending || (signedUrl === null && (item.mediaType === 'IMAGE' || isInteracted))) {
+  if (isPending || (signedUrl === null && (item.mediaType === 'IMAGE' || item.mediaType === 'VIDEO'))) {
     return (
       <div className="media-item-loading" ref={containerRef}>
         <Loader size={20} className="animate-spin" />
@@ -137,23 +129,6 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
     );
   }
 
-  // Video placeholder (before click)
-  if (item.mediaType === 'VIDEO' && !isInteracted) {
-    return (
-      <div 
-        ref={containerRef}
-        className="media-item video-placeholder clickable"
-        onClick={handleVideoClick}
-      >
-        <div className="video-overlay-play static">
-          <Play fill="currentColor" size={32} />
-        </div>
-        <span className="text-xs mt-2 opacity-50">Click to load video</span>
-      </div>
-    );
-  }
-
-  // If failed and no fallback, show placeholder or error state
   if (signedUrl === '') {
     return (
       <div className="media-item-error" ref={containerRef}>
@@ -168,10 +143,14 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
       className={`media-item ${item.mediaType === 'IMAGE' ? 'clickable' : ''}`}
       onClick={item.mediaType === 'IMAGE' ? onClick : undefined}
     >
-      {item.mediaType === 'IMAGE' ? (
+      {item.mediaType === 'IMAGE' && (
         <CachedImage src={signedUrl!} cacheKey={item.downloadUrl || item.uploadUrl} alt={item.fileName || 'media'} showLoader />
-      ) : (
-        <VideoPlayer src={signedUrl!} autoPlay={true} />
+      )}
+      {item.mediaType === 'VIDEO' && (
+        <VideoPlayer src={signedUrl!} autoPlay={false} />
+      )}
+      {item.mediaType === 'AUDIO' && (
+        <AudioPlayer src={signedUrl!} />
       )}
     </div>
   );

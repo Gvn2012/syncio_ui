@@ -13,8 +13,10 @@ export enum MessageContentType {
   TEXT = 'TEXT',
   IMAGE = 'IMAGE',
   VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
   IMAGE_PENDING = 'IMAGE_PENDING',
-  VIDEO_PENDING = 'VIDEO_PENDING'
+  VIDEO_PENDING = 'VIDEO_PENDING',
+  AUDIO_PENDING = 'AUDIO_PENDING'
 }
 
 export interface StatusInfo {
@@ -35,10 +37,10 @@ export interface MediaItem {
   id: string;
   batchId: string;
   conversationId: string;
-  fileName: string;
-  contentType: string;
-  mediaType: 'IMAGE' | 'VIDEO';
-  status: string;
+  fileName?: string;
+  contentType?: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO';
+  status: 'INITIATED' | 'UPLOADED' | 'FAILED' | 'COMPLETED';
   bucketName?: string;
   metadata?: Record<string, any>;
   uploadUrl?: string;

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Paperclip, Send, X } from 'lucide-react';
+import { Paperclip, Send, X, Mic, Square, Trash2 } from 'lucide-react';
+import { useAudioRecorder } from '../../../hooks/useAudioRecorder';
+import { AudioPlayer } from './AudioPlayer';
 
 interface MessageInputProps {
   inputText: string;
@@ -13,6 +15,9 @@ interface MessageInputProps {
   editingContent?: string;
   onCancelEdit: () => void;
   uploadingItems: Array<{ id: string; progress: number; file: File }>;
+  onSendAudio: (blob: Blob) => void;
+  stagedAudio: File | null;
+  onClearStagedAudio: () => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -26,8 +31,43 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   isEditing,
   editingContent,
   onCancelEdit,
-  uploadingItems
+  uploadingItems,
+  onSendAudio,
+  stagedAudio,
+  onClearStagedAudio
 }) => {
+  const {
+    isRecording,
+    audioBlob,
+    recordingDuration,
+    startRecording,
+    stopRecording,
+    discardRecording
+  } = useAudioRecorder();
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSend = () => {
+    if (audioBlob) {
+      onSendAudio(audioBlob);
+      discardRecording();
+    } else if (stagedAudio) {
+      onSendAudio(stagedAudio);
+      onClearStagedAudio();
+    } else {
+      onSendMessage();
+    }
+  };
+
+  const previewAudioSrc = React.useMemo(() => {
+    if (audioBlob) return URL.createObjectURL(audioBlob);
+    if (stagedAudio) return URL.createObjectURL(stagedAudio);
+    return null;
+  }, [audioBlob, stagedAudio]);
   return (
     <div className="chat-input-area">
       {uploadingItems.length > 0 && (
@@ -70,29 +110,65 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           style={{ display: 'none' }} 
           multiple 
           onChange={onFileSelect}
-          accept="image/*,video/*"
+          accept="image/*,video/*,audio/*"
         />
-        <button className="icon-btn" onClick={() => fileInputRef.current?.click()}>
+        <button className="icon-btn" onClick={() => fileInputRef.current?.click()} disabled={isRecording}>
           <Paperclip size={20} />
         </button>
         
-        <textarea
-          ref={textAreaRef}
-          className="chat-input"
-          placeholder="Type a message..."
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={onKeyDown}
-          rows={1}
-        />
+        {isRecording ? (
+          <div className="chat-input-recording">
+            <span className="recording-dot"></span>
+            Recording... {formatTime(recordingDuration)}
+          </div>
+        ) : previewAudioSrc ? (
+          <div className="chat-input-audio-preview">
+            <AudioPlayer src={previewAudioSrc} />
+          </div>
+        ) : (
+          <textarea
+            ref={textAreaRef}
+            className="chat-input"
+            placeholder="Type a message..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={onKeyDown}
+            rows={1}
+          />
+        )}
         
-        <button 
-          className="send-btn"
-          onClick={onSendMessage}
-          disabled={!inputText.trim() && uploadingItems.length === 0}
-        >
-          <Send size={18} />
-        </button>
+        {!inputText.trim() && uploadingItems.length === 0 && !previewAudioSrc ? (
+          isRecording ? (
+            <button className="icon-btn text-red-500" onClick={stopRecording}>
+              <Square size={20} fill="currentColor" />
+            </button>
+          ) : (
+            <button className="icon-btn" onClick={startRecording}>
+              <Mic size={20} />
+            </button>
+          )
+        ) : (
+          <div className="chat-input-actions">
+            {previewAudioSrc && (
+              <button 
+                className="icon-btn delete-audio-btn" 
+                onClick={() => {
+                  if (audioBlob) discardRecording();
+                  if (stagedAudio) onClearStagedAudio();
+                }}
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
+            <button 
+              className="send-btn"
+              onClick={handleSend}
+              disabled={(!inputText.trim() && uploadingItems.length === 0 && !previewAudioSrc) || isRecording}
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

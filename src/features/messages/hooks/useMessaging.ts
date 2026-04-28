@@ -109,6 +109,11 @@ export const useMessaging = () => {
           dispatch(setUserPresence(update));
         });
 
+        client.subscribe(`/user/${userId}/queue/call`, (message) => {
+          const signal = JSON.parse(message.body);
+          window.dispatchEvent(new CustomEvent('webrtc-signal', { detail: signal }));
+        });
+
         dispatch(fetchConversations() as any);
         dispatch(fetchTotalUnreadCount() as any);
       },
@@ -251,5 +256,14 @@ export const useMessaging = () => {
     }
   }, []);
 
-  return { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, deleteConversation, sendTyping };
+  const sendSignal = useCallback((signal: any) => {
+    if (globalStompClient && globalStompClient.connected) {
+      globalStompClient.publish({
+        destination: '/app/call.signal',
+        body: JSON.stringify(signal),
+      });
+    }
+  }, []);
+
+  return { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, deleteConversation, sendTyping, sendSignal };
 };

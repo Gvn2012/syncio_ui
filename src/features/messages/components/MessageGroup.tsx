@@ -6,16 +6,10 @@ import { MediaItemRenderer, getMediaUrl } from './MediaItemRenderer';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { useParticipant } from '../hooks/useParticipant';
 
-/**
- * Look up a signed URL for a media item, trying multiple keys:
- * 1. downloadUrl
- * 2. uploadUrl  
- * 3. Constructed GCS path (msg/{conversationId}/{mediaType}/{id})
- */
+
 const resolveSignedUrl = (item: MediaItem, signedUrls: Record<string, string>): string | undefined => {
   if (item.downloadUrl && signedUrls[item.downloadUrl]) return signedUrls[item.downloadUrl];
   if (item.uploadUrl && signedUrls[item.uploadUrl]) return signedUrls[item.uploadUrl];
-  // Fallback: construct GCS path and check
   if (item.conversationId && item.mediaType && item.id) {
     const gcsPath = `msg/${item.conversationId}/${item.mediaType}/${item.id}`;
     if (signedUrls[gcsPath]) return signedUrls[gcsPath];
@@ -78,7 +72,7 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
             overflow: 'hidden'
           }}>
             {group.messages.map((msg: MessageResponse) => {
-              const isPending = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING;
+              const isPending = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING || msg.type === MessageContentType.AUDIO_PENDING;
               
               const allImageUrls = group.messages.flatMap((m: MessageResponse) => 
                 m.mediaItems?.filter(i => i.mediaType === 'IMAGE').map(i => getMediaUrl(i.downloadUrl || i.uploadUrl, resolveSignedUrl(i, signedUrls))) || 
@@ -113,7 +107,7 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
                     conversationId: msg.conversationId,
                     fileName: 'media',
                     contentType: '',
-                    mediaType: msg.type === MessageContentType.VIDEO ? 'VIDEO' : 'IMAGE',
+                    mediaType: msg.type === MessageContentType.VIDEO ? 'VIDEO' : msg.type === MessageContentType.AUDIO ? 'AUDIO' : 'IMAGE',
                     status: 'COMPLETED',
                     downloadUrl: msg.mediaUrl
                   }}

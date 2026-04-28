@@ -90,7 +90,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, poster, className
         onError={() => { setIsLoading(false); }}
         onClick={togglePlay}
         autoPlay={autoPlay}
-        preload="none"
+        preload="metadata"
       />
 
       {isLoading && (

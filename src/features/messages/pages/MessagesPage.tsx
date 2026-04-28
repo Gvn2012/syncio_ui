@@ -26,6 +26,8 @@ import { ChatHeader } from '../components/ChatHeader';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { MessageGroup } from '../components/MessageGroup';
 import { MessageInput } from '../components/MessageInput';
+import { useWebRTC, CallState } from '../hooks/useWebRTC';
+import { IncomingCallModal, ActiveCallBar } from '../components/CallComponents';
 
 const formatTimestamp = (timestamp: string | undefined): Date => {
   if (!timestamp) return new Date();
@@ -42,6 +44,8 @@ export const MessagesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, sendTyping, deleteConversation } = useMessaging();
   
+  const { callState, callerInfo, duration, isMuted, remoteStream, initiateCall, answerCall, rejectCall, endCall, toggleMute } = useWebRTC();
+  
   const { conversations, messagesByConversation, paginationByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers, isConnected } = useSelector(
     (state: RootState) => state.messaging
   );
@@ -54,10 +58,11 @@ export const MessagesPage: React.FC = () => {
     id: string;
     file: File;
     progress: number;
-    type: 'IMAGE' | 'VIDEO';
+    type: 'IMAGE' | 'VIDEO' | 'AUDIO';
     previewUrl: string;
   }
   const [uploadingItems, setUploadingItems] = useState<UploadingItem[]>([]);
+  const [stagedAudio, setStagedAudio] = useState<File | null>(null);
 
   const [inputText, setInputText] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -111,7 +116,7 @@ export const MessagesPage: React.FC = () => {
     let currentGroup: MessageGroupItem | null = null;
 
     messages.forEach((msg) => {
-      const isPendingMedia = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING;
+      const isPendingMedia = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING || msg.type === MessageContentType.AUDIO_PENDING;
       if (isPendingMedia && msg.senderId !== currentUserId) return;
 
       const isMedia = msg.type && msg.type !== MessageContentType.TEXT;
@@ -362,9 +367,18 @@ export const MessagesPage: React.FC = () => {
     if (files.length === 0 || !activeConversationId || !currentUserId) return;
     if (files.length > 25) { dispatch(showError('Maximum 25 items allowed per upload')); return; }
 
-    const newUploadingItems: UploadingItem[] = files.map(file => ({
+    const audioFiles = files.filter(f => f.type.startsWith('audio/'));
+    const otherFiles = files.filter(f => !f.type.startsWith('audio/'));
+
+    if (audioFiles.length > 0) {
+      setStagedAudio(audioFiles[0]);
+    }
+
+    if (otherFiles.length === 0) return;
+
+    const newUploadingItems: UploadingItem[] = otherFiles.map(file => ({
       id: `temp-${Date.now()}-${Math.random()}`,
-      file, progress: 0, type: file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE', previewUrl: URL.createObjectURL(file)
+      file, progress: 0, type: file.type.startsWith('video/') ? 'VIDEO' : file.type.startsWith('audio/') ? 'AUDIO' : 'IMAGE', previewUrl: URL.createObjectURL(file)
     }));
 
     setUploadingItems(prev => [...prev, ...newUploadingItems]);
@@ -373,7 +387,7 @@ export const MessagesPage: React.FC = () => {
       const processedFiles = await Promise.all(files.map(file => file.type.startsWith('image/') ? compressFileIfNeeded(file) : file));
       const requests = processedFiles.map(file => ({
         fileName: file.name, fileContentType: file.type, size: file.size, conversationId: activeConversationId,
-        mediaType: file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE' as any, senderId: currentUserId
+        mediaType: file.type.startsWith('video/') ? 'VIDEO' : file.type.startsWith('audio/') ? 'AUDIO' : 'IMAGE' as any, senderId: currentUserId
       }));
 
       const res = await uploadService.requestMessageMediaBatchUploadUrl({ requests });
@@ -414,6 +428,38 @@ export const MessagesPage: React.FC = () => {
     }
   };
 
+  const handleSendAudio = async (blob: Blob) => {
+    if (!activeConversationId || !currentUserId) return;
+    const file = new File([blob], `voice_message_${Date.now()}.webm`, { type: blob.type || 'audio/webm' });
+    
+    const newUploadingItem: UploadingItem = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      file, progress: 0, type: 'AUDIO', previewUrl: URL.createObjectURL(file)
+    };
+
+    setUploadingItems(prev => [...prev, newUploadingItem]);
+
+    try {
+      const requests = [{
+        fileName: file.name, fileContentType: file.type, size: file.size, conversationId: activeConversationId,
+        mediaType: 'AUDIO' as any, senderId: currentUserId
+      }];
+
+      const res = await uploadService.requestMessageMediaBatchUploadUrl({ requests });
+      if (res.data?.responses && res.data.responses.length > 0) {
+        const uploadInfo = res.data.responses[0];
+        await uploadService.uploadToGcs(uploadInfo.uploadUrl, file, uploadInfo.headers['Content-Type'] || file.type, uploadInfo.headers).then(() => {
+           setUploadingItems(prev => prev.map(item => item.id === newUploadingItem.id ? { ...item, progress: 1 } : item));
+        });
+      }
+    } catch (error) {
+      console.error('Audio upload failed', error);
+      dispatch(showError('Failed to send voice message'));
+    } finally {
+      setTimeout(() => setUploadingItems(prev => prev.filter(item => item.id !== newUploadingItem.id)), 2000);
+    }
+  };
+
   const getStatusIcon = (msg: MessageResponse) => {
     if (!activeChat || !currentUserId) return null;
     const otherParticipantId = activeChat.participants.find((id: string) => id !== currentUserId);
@@ -445,8 +491,28 @@ export const MessagesPage: React.FC = () => {
   const isOnline = otherParticipantId ? !!onlineUsers[otherParticipantId] : false;
   const isTyping = activeChat && otherParticipantId ? (typingUsers[activeChat.id] || []).includes(otherParticipantId) : false;
 
+  useEffect(() => {
+    messages.forEach(msg => {
+      const isPendingMedia = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING || msg.type === MessageContentType.AUDIO_PENDING;
+      if (isPendingMedia && msg.senderId === currentUserId) {
+        const msgTime = formatTimestamp(msg.timestamp).getTime();
+        if (Date.now() - msgTime > 2 * 60 * 1000) {
+          deleteMessage(msg.conversationId, msg.id);
+        }
+      }
+    });
+  }, [messages, currentUserId, deleteMessage]);
+
   return (
-    <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
+    <>
+      {callState === CallState.INBOUND_RINGING && (
+        <IncomingCallModal 
+          callerInfo={callerInfo} 
+          onAccept={answerCall} 
+          onReject={rejectCall} 
+        />
+      )}
+      <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
       <div className="chat-list-panel">
         <div className="chat-list-header">
           <h2>Messages {totalUnreadCount > 0 && <span className="header-unread-badge">{totalUnreadCount}</span>}</h2>
@@ -483,7 +549,21 @@ export const MessagesPage: React.FC = () => {
               isTyping={isTyping} 
               onDeleteConversation={handleDeleteConversation} 
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+              onCallClick={() => {
+                const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
+                if (otherId) initiateCall(otherId);
+              }}
             />
+
+            {callState === CallState.CONNECTED && (
+              <ActiveCallBar 
+                duration={duration} 
+                isMuted={isMuted} 
+                onToggleMute={toggleMute} 
+                onEndCall={endCall} 
+                remoteStream={remoteStream}
+              />
+            )}
 
             <div className="messages-scroll" ref={messagesScrollRef} onScroll={handleMessagesScroll}>
               {pagination.loadingMore && <div className="loading-more"><Loader size={20} className="animate-spin" /></div>}
@@ -538,6 +618,9 @@ export const MessagesPage: React.FC = () => {
               editingContent={editingMessage?.content}
               onCancelEdit={() => { setEditingMessageId(null); setInputText(''); }}
               uploadingItems={uploadingItems}
+              onSendAudio={handleSendAudio}
+              stagedAudio={stagedAudio}
+              onClearStagedAudio={() => setStagedAudio(null)}
             />
           </>
         ) : (
@@ -556,5 +639,6 @@ export const MessagesPage: React.FC = () => {
         icon={confirmModal.icon}
       />
     </div>
+    </>
   );
 };

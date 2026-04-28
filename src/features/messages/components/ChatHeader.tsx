@@ -12,6 +12,7 @@ interface ChatHeaderProps {
   isTyping: boolean;
   onDeleteConversation: () => void;
   onToggleSidebar: () => void;
+  onCallClick?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ 
@@ -20,7 +21,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isOnline, 
   isTyping, 
   onDeleteConversation,
-  onToggleSidebar
+  onToggleSidebar,
+  onCallClick
 }) => {
   const navigate = useNavigate();
   const [showOptions, setShowOptions] = useState(false);
@@ -56,7 +58,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
       <div className="chat-header-actions">
-        <button className="icon-btn"><Phone size={18} /></button>
+        <button className="icon-btn" onClick={onCallClick}><Phone size={18} /></button>
         <button className="icon-btn"><Video size={18} /></button>
         <div className="options-menu-container" ref={optionsRef}>
           <button className="icon-btn" onClick={() => setShowOptions(!showOptions)}>
