@@ -4,7 +4,7 @@ import { Search, Plus, Check, CheckCheck, Loader, AlertTriangle, Trash, ArrowDow
 import { useDispatch, useSelector } from 'react-redux';
 import { ConversationType, MessageStatusType, MessageContentType } from '../types';
 import type { MessageResponse } from '../types';
-import { uploadService } from '../../../api/upload.service';
+import { uploadService, isUrlExpired } from '../../../api/upload.service';
 import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
 import { openLightbox, showError } from '../../../store/slices/uiSlice';
 import { useMessaging } from '../hooks/useMessaging';
@@ -18,6 +18,7 @@ import {
 } from '../../../store/slices/messagingSlice';
 import type { RootState, AppDispatch } from '../../../store';
 import { isDirectChatId, getParticipantsFromDirectChatId } from '../utils/chatId';
+import { checkImageCache } from '../../../hooks/useCachedImage';
 import './MessagesPage.css';
 
 import { ChatItem } from '../components/ChatItem';
@@ -142,7 +143,7 @@ export const MessagesPage: React.FC = () => {
       }
     });
     return result;
-  }, [messages]);
+  }, [messages, currentUserId]);
 
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [fetchingUrls, setFetchingUrls] = useState<Set<string>>(new Set());
@@ -171,17 +172,12 @@ export const MessagesPage: React.FC = () => {
     });
 
     const unfetchedUrls = Array.from(urlsToFetch).filter(url => 
-      !signedUrls[url] && !fetchingUrls.has(url) && !failedUrls.has(url)
+      (!signedUrls[url] || isUrlExpired(signedUrls[url])) && !fetchingUrls.has(url) && !failedUrls.has(url)
     );
     
     if (unfetchedUrls.length === 0) return;
 
     const batchSize = 50;
-    setFetchingUrls(prev => {
-      const next = new Set(prev);
-      unfetchedUrls.forEach(u => next.add(u));
-      return next;
-    });
 
     const fetchBatch = async (chunk: string[]) => {
       try {
@@ -206,10 +202,35 @@ export const MessagesPage: React.FC = () => {
       }
     };
 
-    for (let i = 0; i < unfetchedUrls.length; i += batchSize) {
-      fetchBatch(unfetchedUrls.slice(i, i + batchSize));
-    }
+    const processUrls = async () => {
+      const cachedStatus = await Promise.all(unfetchedUrls.map(url => checkImageCache(url)));
+      const filteredUnfetched = unfetchedUrls.filter((_, i) => !cachedStatus[i]);
+      const cachedUrls = unfetchedUrls.filter((_, i) => cachedStatus[i]);
+
+      if (cachedUrls.length > 0) {
+        setSignedUrls(prev => {
+          const next = { ...prev };
+          cachedUrls.forEach(url => { next[url] = url; });
+          return next;
+        });
+      }
+
+      if (filteredUnfetched.length === 0) return;
+
+      setFetchingUrls(prev => {
+        const next = new Set(prev);
+        filteredUnfetched.forEach(u => next.add(u));
+        return next;
+      });
+
+      for (let i = 0; i < filteredUnfetched.length; i += batchSize) {
+        fetchBatch(filteredUnfetched.slice(i, i + batchSize));
+      }
+    };
+
+    processUrls();
   }, [messages, activeConversationId]); 
+
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
 
@@ -255,6 +276,7 @@ export const MessagesPage: React.FC = () => {
       dispatch(setActiveConversation(null));
     }
   }, [convid, dispatch]);
+
   const activeChat = useMemo(() => {
     if (!activeConversationId) return null;
     const existing = conversations.find(c => c.id === activeConversationId);

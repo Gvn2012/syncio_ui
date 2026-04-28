@@ -20,6 +20,47 @@ export interface MessageMediaBatchUploadRequestPayload {
   requests: MessageMediaUploadRequestPayload[];
 }
 
+export const isUrlExpired = (url: string | null | undefined): boolean => {
+  if (!url || !url.startsWith('http')) return false;
+  
+  try {
+    const urlObj = new URL(url);
+    const params = urlObj.searchParams;
+    
+    const googDate = params.get('X-Goog-Date') || params.get('x-goog-date');
+    const googExpires = params.get('X-Goog-Expires') || params.get('x-goog-expires');
+    
+    if (googDate && googExpires) {
+      const match = googDate.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+      if (match) {
+        const [_, year, month, day, hour, minute, second] = match;
+        const createdDate = new Date(Date.UTC(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hour),
+          parseInt(minute),
+          parseInt(second)
+        ));
+        
+        const expiryTime = createdDate.getTime() + (parseInt(googExpires) * 1000);
+        return Date.now() > (expiryTime - 300000);
+      }
+    }
+    
+    const expires = params.get('Expires') || params.get('expires');
+    if (expires) {
+      const expiryTime = parseInt(expires) * 1000;
+      return Date.now() > (expiryTime - 300000);
+    }
+  } catch (e) {
+    console.error('Error checking URL expiration:', e);
+    return false;
+  }
+  
+  return false;
+};
+
 export const uploadService = {
  
   requestUploadUrl: async (payload: UploadRequestPayload): Promise<GCSUploadResponse> => {

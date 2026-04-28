@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { UserService } from '../../user/api/user.service';
 
 const participantCache: Record<string, { name: string; avatar?: string }> = {};
+const inflightRequests: { [key: string]: Promise<void> | undefined } = {};
 
 export const useParticipant = (participantId: string | null | undefined) => {
   const [participant, setParticipant] = useState<{ name: string; avatar?: string } | null>(
@@ -14,13 +15,27 @@ export const useParticipant = (participantId: string | null | undefined) => {
       if (participantId && participantCache[participantId]) {
         setParticipant(participantCache[participantId]);
       }
+      setLoading(false);
+      return;
+    }
+
+    if (inflightRequests[participantId]) {
+      inflightRequests[participantId].then(() => {
+        if (participantCache[participantId]) {
+          setParticipant(participantCache[participantId]);
+        }
+        setLoading(false);
+      });
       return;
     }
 
     const fetchParticipant = async () => {
       try {
         setLoading(true);
-        const res = await UserService.getUserDetail(participantId);
+        const request = UserService.getUserDetail(participantId);
+        inflightRequests[participantId] = request.then(() => {});
+        
+        const res = await request;
         if (res.success) {
           const user = res.data.userResponse;
           const profile = res.data.userProfileResponse;
@@ -37,6 +52,7 @@ export const useParticipant = (participantId: string | null | undefined) => {
       } catch (err) {
         console.error('Failed to fetch participant info', err);
       } finally {
+        delete inflightRequests[participantId];
         setLoading(false);
       }
     };

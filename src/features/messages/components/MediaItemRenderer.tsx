@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader, Play } from 'lucide-react';
 import type { MediaItem } from '../types';
-import { uploadService } from '../../../api/upload.service';
+import { uploadService, isUrlExpired } from '../../../api/upload.service';
 import { CachedImage } from '../../../components/common/CachedImage';
 import { VideoPlayer } from './VideoPlayer';
+import { checkImageCache } from '../../../hooks/useCachedImage';
 
 export const getMediaUrl = (path: string | undefined | null, signedUrl?: string) => {
   if (signedUrl) return signedUrl;
@@ -40,7 +41,7 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
   }, [signedUrl]);
 
   useEffect(() => {
-    if (prefetchedUrl) {
+    if (prefetchedUrl && !isUrlExpired(prefetchedUrl)) {
       setSignedUrl(prefetchedUrl);
       return;
     }
@@ -67,9 +68,16 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
     }
     
     let isMounted = true;
-    const fetchUrl = (retryCount = 0) => {
-      if (signedUrlRef.current && !signedUrlRef.current.startsWith('http')) return; 
+    const fetchUrl = async (retryCount = 0) => {
+      if (signedUrlRef.current && !signedUrlRef.current.startsWith('http') && !isUrlExpired(signedUrlRef.current)) return; 
       
+      // Check physical cache first to prevent download-urls request
+      const isCached = await checkImageCache(urlToResolve);
+      if (isCached && isMounted) {
+        setSignedUrl(urlToResolve!); // CachedImage will handle this if cacheKey is passed
+        return;
+      }
+
       uploadService.requestDownloadUrls([urlToResolve!]).then(res => {
         if (isMounted && res.data?.downloadUrls?.[urlToResolve!]) {
           const newUrl = res.data.downloadUrls[urlToResolve!];
@@ -87,16 +95,13 @@ export const MediaItemRenderer: React.FC<MediaItemRendererProps> = ({ item, onCl
       });
     };
 
-    // For videos, we only fetch if the user has interacted (clicked)
-    // For images, we fetch on priority or intersection
     const shouldFetchImmediately = priority && (item.mediaType === 'IMAGE' || isInteracted);
-    
+
     if (shouldFetchImmediately) {
       fetchUrl();
       return () => { isMounted = false; };
     }
 
-    // Only set up observer for images, or for videos that have been interacted with
     if (item.mediaType === 'IMAGE' || isInteracted) {
       const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {

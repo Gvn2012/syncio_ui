@@ -20,6 +20,7 @@ interface MessagingState {
   isConnected: boolean;
   totalUnreadCount: number;
   userId: string | null;
+  mediaUrls: Record<string, string>;
 }
 
 const initialState: MessagingState = {
@@ -34,6 +35,7 @@ const initialState: MessagingState = {
   isConnected: false,
   totalUnreadCount: 0,
   userId: null,
+  mediaUrls: {},
 };
 
 export const fetchConversations = createAsyncThunk(
@@ -87,7 +89,6 @@ export const fetchOlderMessages = createAsyncThunk(
     try {
       const state = getState() as { messaging: MessagingState };
       const messages = state.messaging.messagesByConversation[conversationId] || [];
-      // The first message in our state is the oldest (since we prepend)
       const oldestMessage = messages[0];
       const before = oldestMessage ? oldestMessage.timestamp : undefined;
       const pageSize = size ?? 30;
@@ -149,7 +150,6 @@ const messagingSlice = createSlice({
         state.messagesByConversation[conversationId].push(action.payload);
         if (conv) {
           conv.lastMessage = action.payload;
-          // Don't increment unread count if conversation is active OR message is from current user
           if (state.activeConversationId !== conversationId && senderId !== state.userId) {
             conv.unreadCount = (conv.unreadCount || 0) + 1;
             state.totalUnreadCount++;
@@ -246,7 +246,10 @@ const messagingSlice = createSlice({
     },
     setUserId: (state, action: PayloadAction<string | null>) => {
       state.userId = action.payload;
-    }
+    },
+    setMediaUrls: (state, action: PayloadAction<Record<string, string>>) => {
+      state.mediaUrls = { ...state.mediaUrls, ...action.payload };
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -332,7 +335,8 @@ export const {
   removeConversation,
   setActiveConversation,
   markConversationAsRead,
-  setUserId
+  setUserId,
+  setMediaUrls
 } = messagingSlice.actions;
 
 export const selectTotalUnreadCount = (state: RootState) => state.messaging.totalUnreadCount;

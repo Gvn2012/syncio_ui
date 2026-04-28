@@ -17,7 +17,7 @@ interface UserAvatarProps {
 
 const failedUrls = new Set<string>();
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId, showLink = true, src }) => {
+export const UserAvatar: React.FC<UserAvatarProps> = React.memo(({ className, size, userId, showLink = true, src }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { id: currentUserId, userDetail, userDetailLoading } = useSelector((state: RootState) => state.user);
   
@@ -38,7 +38,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId,
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     if (e.currentTarget.src === fallbackUrl) return;
 
-    // Check if we already attempted a refresh for this specific URL
     if (currentUserId && isCurrentUser && !userDetailLoading && !failedUrls.has(avatarUrl)) {
       console.warn("Avatar URL expired/failed. Refreshing user detail...");
       failedUrls.add(avatarUrl);
@@ -78,4 +77,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId,
   }
 
   return avatarImage;
-};
+});
+
+UserAvatar.displayName = 'UserAvatar';

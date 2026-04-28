@@ -10,7 +10,7 @@ interface ChatItemProps {
   onClick: () => void;
 }
 
-export const ChatItem: React.FC<ChatItemProps> = ({ conv, isActive, currentUserId, onClick }) => {
+export const ChatItem: React.FC<ChatItemProps> = React.memo(({ conv, isActive, currentUserId, onClick }) => {
   const otherParticipantId = conv.participants.find(id => id !== currentUserId);
   const { participant } = useParticipant(otherParticipantId);
   const displayName = conv.name || participant?.name || (otherParticipantId ? `User ${otherParticipantId.substring(0, 4)}` : 'Sync User');
@@ -37,4 +37,6 @@ export const ChatItem: React.FC<ChatItemProps> = ({ conv, isActive, currentUserI
       </div>
     </div>
   );
-};
+});
+
+ChatItem.displayName = 'ChatItem';
