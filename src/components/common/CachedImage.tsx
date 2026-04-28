@@ -5,17 +5,19 @@ import { Loader2 } from 'lucide-react';
 interface CachedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackSrc?: string;
   showLoader?: boolean;
+  cacheKey?: string;
 }
 
 export const CachedImage: React.FC<CachedImageProps> = ({ 
   src, 
   fallbackSrc, 
   showLoader = false,
+  cacheKey,
   className,
   alt,
   ...props 
 }) => {
-  const { cachedSrc, isLoading, error } = useCachedImage(src);
+  const { cachedSrc, isLoading, error } = useCachedImage(src, cacheKey);
 
   if (isLoading && showLoader) {
     return (

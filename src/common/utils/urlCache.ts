@@ -38,17 +38,7 @@ class UrlCache {
   }
 
   private normalize(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      // For GCS, query params are signatures/tokens. A 404 (Not Found) 
-      // usually applies to the resource itself, regardless of the token.
-      if (urlObj.hostname === 'storage.googleapis.com' || urlObj.hostname.endsWith('.googleapis.com')) {
-        return urlObj.origin + urlObj.pathname;
-      }
-      return url;
-    } catch (e) {
-      return url;
-    }
+    return url; 
   }
 
   /**
@@ -56,6 +46,8 @@ class UrlCache {
    */
   public isBad(url: string | undefined): boolean {
     if (!url) return false;
+    // Don't mark GCS URLs as bad persistently, only per-session if needed
+    if (url.includes('storage.googleapis.com')) return false;
     return this.badUrls.has(this.normalize(url));
   }
 

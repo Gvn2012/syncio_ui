@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { type RootState, type AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
 import { CachedImage } from './common/CachedImage';
+import { useParticipant } from '../features/messages/hooks/useParticipant';
 
 interface UserAvatarProps {
   className?: string;
@@ -19,19 +20,20 @@ const failedUrls = new Set<string>();
 export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId, showLink = true, src }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { id: currentUserId, userDetail, userDetailLoading } = useSelector((state: RootState) => state.user);
+  
+  const isCurrentUser = !!currentUserId && (userId === currentUserId || !userId);
+  const { participant } = useParticipant(isCurrentUser ? undefined : userId);
 
-  // If userId is provider and not matching currentUserId, we might not have userDetail yet
-  // but for now let's assume if it's the current user we use the detail, 
-  // otherwise we just show fallback or eventually fetch
-  const isCurrentUser = !userId || userId === currentUserId;
   const user = isCurrentUser ? userDetail?.userResponse : null;
   const primaryPicture = isCurrentUser ? userDetail?.userProfileResponse?.userProfilePictureResponseList?.find(p => p.primary) : null;
   
-  const displayName = user ? `${user.firstName} ${user.lastName}` : 'User';
+  const displayName = isCurrentUser 
+    ? (user ? `${user.firstName} ${user.lastName}` : 'You') 
+    : (participant?.name || 'User');
   
   const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2596be&color=fff&size=${size || 200}`;
   
-  const avatarUrl = src || primaryPicture?.url || fallbackUrl;
+  const avatarUrl = src || (isCurrentUser ? primaryPicture?.url : participant?.avatar) || fallbackUrl;
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     if (e.currentTarget.src === fallbackUrl) return;
@@ -49,6 +51,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ className, size, userId,
   const avatarImage = (
     <CachedImage 
       src={avatarUrl} 
+      cacheKey={avatarUrl !== fallbackUrl ? userId : undefined}
       fallbackSrc={fallbackUrl}
       alt={displayName}
       className={className}

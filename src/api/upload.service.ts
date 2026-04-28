@@ -38,7 +38,7 @@ export const uploadService = {
   },
 
   requestDownloadUrls: async (objectPaths: string[]): Promise<{ data: { downloadUrls: Record<string, string> } }> => {
-    const response = await api.post<{ data: { downloadUrls: Record<string, string> } }>('upload/download-urls', { objectPaths });
+    const response = await api.post<{ data: { downloadUrls: Record<string, string> } }>('upload/internal/download-urls', { objectPaths });
     return response.data;
   },
 

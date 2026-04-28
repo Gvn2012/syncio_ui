@@ -17,7 +17,7 @@ import {
   recallMessage as recallMessageThunk,
   deleteMessage as deleteMessageThunk
 } from '../../../store/slices/messagingSlice';
-import type { MessageResponse } from '../types';
+import { type MessageResponse, MessageContentType } from '../types';
 
 let globalStompClient: Client | null = null;
 let subscribersCount = 0;
@@ -175,6 +175,7 @@ export const useMessaging = () => {
       conversationId,
       senderId: userId || '',
       content,
+      type: MessageContentType.TEXT,
       timestamp: new Date().toISOString(),
       status: {},
       isEdited: false,
