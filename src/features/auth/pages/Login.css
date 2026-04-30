@@ -352,3 +352,54 @@
   color: #94a3b8;
   letter-spacing: 0.1em;
 }
+
+@media (max-width: 768px) {
+  .login-page {
+    padding: 20px 12px;
+  }
+
+  .login-container {
+    flex-direction: column !important;
+    width: 100%;
+    min-height: auto;
+    border-radius: 16px;
+  }
+
+  .login-info-pane {
+    padding: 30px 20px;
+    min-height: 200px;
+  }
+
+  .info-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .info-content p {
+    font-size: 0.95rem;
+  }
+
+  .login-form-pane {
+    padding: 30px 20px;
+  }
+
+  .form-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-header p {
+    font-size: 0.9rem;
+  }
+
+  .login-type-link {
+    margin-top: 15px;
+    margin-bottom: 20px;
+  }
+
+  .login-submit-btn {
+    padding: 12px;
+  }
+
+  .security-badge {
+    margin-top: 30px;
+  }
+}

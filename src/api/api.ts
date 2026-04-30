@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { store } from '../store';
-import { setUser, logout } from '../store/slices/userSlice';
+import { logout } from '../store/slices/userSlice';
 
 const REFRESH_ENDPOINT:string = 'auth/refresh';
 
@@ -75,23 +75,15 @@ api.interceptors.response.use(
      
         const refreshRes = await api.post(REFRESH_ENDPOINT, {}, { _retry: true } as any);
         
-        if (refreshRes.data && refreshRes.data.success && refreshRes.data.data) {
-           const { userRoles } = refreshRes.data.data;
-
-           const currentUser = store.getState().user;
-           store.dispatch(setUser({
-             id: currentUser.id!,
-             username: currentUser.username!,
-             role: userRoles || currentUser.role,
-             orgId: currentUser.orgId!
-           }));
-
+        if (refreshRes.data && refreshRes.data.success) {
+           console.log('[API Interceptor] Refresh successful, retrying request');
            processQueue(null, null);
            return api(originalRequest);
         } else {
-            throw new Error("Refresh failed");
+           throw new Error("Refresh returned success: false");
         }
       } catch (err) {
+        console.error('[API Interceptor] Refresh failed, logging out:', err);
         processQueue(err, null);
         store.dispatch(logout());
         return Promise.reject(err);

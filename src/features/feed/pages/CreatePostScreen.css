@@ -1651,3 +1651,46 @@ input:checked + .slider:before {
 [data-theme='dark'] .form-group label {
   color: #cbd5e1; /* slate-300 for clearer labels */
 }
+
+@media (max-width: 768px) {
+  .create-header {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .header-left h1 {
+    font-size: 1.25rem;
+  }
+
+  .main-form-surface {
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .category-selector {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0.25rem;
+  }
+
+  .category-selector::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-pill {
+    padding: 0.6rem 1rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .category-pill span {
+    display: none; /* Icon only on small screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .category-pill {
+    padding: 0.5rem;
+  }
+}

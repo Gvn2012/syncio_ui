@@ -159,11 +159,10 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
             {msg.isRecalled ? 'This message was recalled' : msg.content}
           </div>
         </div>
-        {(isLastInConversation || isExpanded || msg.isEdited) && (
-          <div className="message-meta-interactive">
-            <span className="time">
-               {formatTimestamp(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
+        <div className="message-meta-interactive">
+          <span className="time">
+             {formatTimestamp(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
             {msg.isEdited && !msg.isRecalled && (
               <span className="edited-indicator" title="Edited">
                 <Edit size={10} />
@@ -187,8 +186,7 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
                 </button>
               </div>
             )}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

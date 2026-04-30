@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, Check, CheckCheck, Loader, AlertTriangle, Trash, ArrowDown } from 'lucide-react';
+import { Search, Plus, Check, CheckCheck, Loader, AlertTriangle, Trash, ArrowDown, Eye, Menu } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ConversationType, MessageStatusType, MessageContentType } from '../types';
 import type { MessageResponse } from '../types';
 import { uploadService, isUrlExpired } from '../../../api/upload.service';
 import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
-import { openLightbox, showError } from '../../../store/slices/uiSlice';
+import { openLightbox, showError, toggleSidebar } from '../../../store/slices/uiSlice';
 import { useMessaging } from '../hooks/useMessaging';
 import { 
   fetchConversations, 
@@ -309,14 +309,17 @@ export const MessagesPage: React.FC = () => {
 
   useEffect(() => {
     const handleFocus = () => {
-      if (activeConversationId) {
+      if (document.hasFocus() && activeConversationId) {
         dispatch(markConversationAsRead(activeConversationId));
         markAsSeen(activeConversationId);
       }
     };
 
     window.addEventListener('focus', handleFocus);
-    handleFocus();
+    
+    if (document.hasFocus()) {
+      handleFocus();
+    }
 
     return () => window.removeEventListener('focus', handleFocus);
   }, [activeConversationId, messages.length, markAsSeen, dispatch]);
@@ -465,7 +468,7 @@ export const MessagesPage: React.FC = () => {
     const otherParticipantId = activeChat.participants.find((id: string) => id !== currentUserId);
     if (!otherParticipantId) return null;
     const status = msg.status?.[otherParticipantId]?.status;
-    if (status === MessageStatusType.SEEN) return <CheckCheck size={14} className="text-primary" />;
+    if (status === MessageStatusType.SEEN) return <Eye size={14} style={{ color: 'var(--primary)' }} />;
     if (status === MessageStatusType.DELIVERED) return <CheckCheck size={14} />;
     return <Check size={14} />;
   };
@@ -522,9 +525,16 @@ export const MessagesPage: React.FC = () => {
           localStream={localStream}
         />
       )}
-      <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
+      <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''} ${activeConversationId ? 'has-active-chat' : ''}`}>
       <div className="chat-list-panel">
         <div className="chat-list-header">
+          <button 
+            className="mobile-only menu-toggle-btn"
+            onClick={() => dispatch(toggleSidebar())}
+            style={{ marginRight: '12px', marginLeft: '-4px' }}
+          >
+            <Menu size={24} />
+          </button>
           <h2>Messages {totalUnreadCount > 0 && <span className="header-unread-badge">{totalUnreadCount}</span>}</h2>
           <div className="chat-actions">
             <button className="icon-btn"><Search size={20} /></button>

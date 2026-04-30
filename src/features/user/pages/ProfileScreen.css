@@ -58,13 +58,14 @@
 .profile-header-section {
   position: relative;
   background: var(--bg-sidebar);
-  padding: 2.5rem;
+  padding: 1.5rem; /* Reduced from 2.5rem */
   border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 1.5rem;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
 }
+
 
 .profile-header-gradient {
   position: absolute;
@@ -80,9 +81,10 @@
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 2rem;
-  align-items: flex-start;
+  gap: 1.5rem; /* Reduced from 2rem */
+  align-items: center; /* Changed from flex-start */
 }
+
 
 .profile-avatar-container {
   position: relative;
@@ -101,8 +103,8 @@
 
 .profile-avatar-wrapper {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: 100px; /* Reduced from 140px */
+  height: 100px; /* Reduced from 140px */
   cursor: pointer;
   border-radius: 50%;
   overflow: hidden;
@@ -111,6 +113,7 @@
   align-items: center;
   justify-content: center;
 }
+
 
 .avatar-overlay {
   position: absolute;
@@ -220,12 +223,13 @@
 }
 
 .profile-name-row h1 {
-  font-size: 2rem;
+  font-size: 1.5rem; /* Reduced from 2rem */
   font-weight: 800;
   color: #ffffff;
   margin: 0;
   line-height: 1.2;
 }
+
 
 .profile-username {
   font-size: 0.95rem;
@@ -237,8 +241,9 @@
 
 .profile-quick-stats {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
+
 
 .quick-stat {
   display: flex;
@@ -248,10 +253,11 @@
 }
 
 .quick-stat .value {
-  font-size: 1.25rem;
+  font-size: 1.1rem; /* Reduced from 1.25rem */
   font-weight: 700;
   color: #ffffff;
 }
+
 
 .quick-stat .label {
   font-size: 0.7rem;
@@ -263,8 +269,9 @@
 
 /* Bio */
 .profile-bio-section {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* Reduced from 1rem */
 }
+
 
 .bio-display {
   display: flex;
@@ -273,11 +280,12 @@
 }
 
 .profile-bio {
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.9rem; /* Reduced from 0.95rem */
+  line-height: 1.5;
   color: rgba(255, 255, 255, 0.75);
   max-width: 600px;
 }
+
 
 .edit-inline-btn {
   background: rgba(255, 255, 255, 0.08);
@@ -368,21 +376,33 @@
 /* Quick meta chips */
 .profile-quick-meta {
   display: flex;
-  gap: 0.75rem;
+  flex-direction: row;
   flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .meta-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.06);
+  justify-content: flex-start;
+  gap: 16px; /* Icon-Text gap */
+  padding: 6px 12px; /* Compact padding for row layout */
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full); /* Pills for desktop */
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
 }
+
+
+.meta-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+
 
 .meta-chip svg {
   color: var(--primary);
@@ -775,15 +795,46 @@
     text-align: center;
   }
 
+  .profile-info-main {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   .profile-name-row {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
   }
 
-  .profile-quick-meta {
+  .profile-quick-stats {
+    width: 100%;
     justify-content: center;
+    gap: 1.5rem;
+    margin: 0.5rem 0;
   }
+
+
+
+  .profile-quick-meta {
+    flex-direction: column;
+    align-items: center; /* Center the bars horizontally on mobile */
+    gap: 0.5rem;
+  }
+
+  .profile-quick-meta .meta-chip {
+    width: 100%;
+    max-width: 400px; /* Standard bar width */
+    justify-content: flex-start; /* Keep icon/text left-aligned inside the bar */
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+  }
+
+
+
+
 
   .bio-display {
     justify-content: center;
@@ -855,4 +906,66 @@
 .secondary-action-btn:hover {
   background: var(--bg-search);
   border-color: var(--primary-alpha-20);
+}
+
+@media (max-width: 768px) {
+  .profile-header-section {
+    padding: 1.5rem;
+  }
+
+  .profile-avatar-wrapper {
+    width: 120px;
+    height: 120px;
+  }
+
+  .profile-name-row h1 {
+    font-size: 1.5rem;
+  }
+
+  .profile-quick-stats {
+    gap: 1rem;
+  }
+
+  .quick-stat .value {
+    font-size: 1.1rem;
+  }
+
+  .profile-actions-area {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .message-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .profile-quick-meta {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .meta-chip {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-actions-area {
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .message-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    justify-content: center;
+  }
+
+  .message-btn span {
+    display: none;
+  }
 }

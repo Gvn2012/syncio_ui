@@ -161,3 +161,58 @@
 .task-deadline.overdue {
   color: #ef4444;
 }
+
+@media (max-width: 768px) {
+  .tasks-page {
+    padding: 12px;
+  }
+
+  .tasks-header {
+    flex-direction: row; /* Stay as line */
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .header-actions button {
+    flex: 1;
+    justify-content: center;
+    padding: 8px !important;
+    border: none !important; /* Force remove border on mobile */
+  }
+
+  .header-actions button span {
+    display: none;
+  }
+
+  .tasks-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stat-card .value {
+    font-size: 24px;
+  }
+
+  .tasks-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card {
+    padding: 16px;
+  }
+}
+

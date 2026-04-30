@@ -117,6 +117,7 @@ function AppContent() {
   const { pathname } = useLocation();
   
   const user = useSelector((state: RootState) => state.user);
+  console.log('[DEBUG] Current User State:', user);
   
   useStompLifecycle();
   

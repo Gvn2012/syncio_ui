@@ -287,7 +287,8 @@ export const ProfileScreen: React.FC = () => {
                 onClick={isOwnProfile ? handleAvatarClick : undefined}
                 data-tooltip={isOwnProfile ? "Click to change profile picture" : ""}
               >
-                <UserAvatar className="profile-avatar-large" size={200} userId={effectiveUserId || undefined} showLink={false} />
+                <UserAvatar className="profile-avatar-large" size={100} userId={effectiveUserId || undefined} showLink={false} />
+
                 {isOwnProfile && (
                   <div className="avatar-overlay">
                     {isUploading ? (

@@ -179,7 +179,72 @@
   color: var(--text-main);
 }
 
+@media (max-width: 768px) {
+  .feed-view {
+    padding: 8px;
+  }
+
+  .feed-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0 4px 10px 4px;
+  }
+
+  .header-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: row; /* Stay on the same line */
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .search-pill {
+    max-width: none;
+    padding: 6px 12px;
+  }
+
+  .action-btn {
+    flex: 0 0 auto;
+    padding: 8px;
+    aspect-ratio: 1;
+    justify-content: center;
+    border: none !important; /* Force remove border on mobile */
+  }
+
+
+  .header-actions .action-btn span {
+    display: none;
+  }
+
+
+  .create-sync-btn-link {
+    flex: 1;
+    width: auto;
+  }
+
+  .create-sync-btn {
+    width: 100%;
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .create-sync-btn span {
+    display: none; /* Hide 'Create Sync' text to stay on same line with others */
+  }
+
+  .feed-main {
+    width: 100%;
+  }
+}
+
+
 @media (max-width: 1024px) {
+  .feed-main {
+    width: 95%;
+  }
+
   .feed-container {
     grid-template-columns: 1fr;
   }

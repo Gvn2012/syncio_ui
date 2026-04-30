@@ -542,35 +542,99 @@
   .people-header-v2 {
     flex-direction: column;
     text-align: center;
-    padding: 2rem 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
   }
  
   .header-content h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
- 
+
   .people-tabs-v2 {
     width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
+    padding: 0.25rem;
+    gap: 0.25rem;
   }
- 
+  
+  .people-tabs-v2::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn-v2 {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
   .people-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
+  }
+
+  .person-card.premium {
+    flex-direction: row; /* Stay as line */
+    align-items: center;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .person-avatar-link img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .person-name {
+    font-size: 1rem;
+  }
+
+  .person-username {
+    font-size: 0.8rem;
+  }
+
+  .person-actions-v2 {
+    gap: 0.4rem;
+    margin-top: 0;
+  }
+
+  .glass-action-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    border-radius: 10px;
+    border: none !important; /* Force remove border on mobile */
+  }
+
+  .glass-action-btn span {
+    display: none; /* Hide text to save space on line */
   }
 
   .request-card.premium {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1.25rem;
+    flex-direction: row;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .request-header {
+    flex: 1;
+    gap: 0.75rem;
+  }
+
+  .request-user-info .person-name {
+    font-size: 0.95rem;
   }
 
   .request-actions-v2 {
-    width: 100%;
+    gap: 0.4rem;
   }
 
   .req-btn-v2 {
-    flex: 1;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .req-btn-v2 span {
+    display: none;
   }
 }
+

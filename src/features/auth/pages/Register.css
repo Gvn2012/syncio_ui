@@ -758,3 +758,75 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (max-width: 768px) {
+  .register-page {
+    padding: 10px;
+  }
+
+  .register-container {
+    width: 100%;
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .registration-progress {
+    gap: 6px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+
+  .progress-step .step-label {
+    display: none;
+  }
+
+  .progress-line {
+    width: 15px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .form-grid .span-2 {
+    grid-column: span 1;
+  }
+
+  .register-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .paths-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .otp-container {
+    gap: 8px;
+  }
+
+  .otp-input {
+    width: 42px;
+    height: 52px;
+    font-size: 1.25rem;
+  }
+
+  .phone-code-select {
+    flex: 0 0 100px !important;
+  }
+
+  .item-card {
+    padding: 12px;
+  }
+
+  .avatar-preview-circle,
+  .avatar-placeholder-circle {
+    width: 120px;
+    height: 120px;
+  }
+
+  .avatar-letter {
+    font-size: 48px;
+  }
+}

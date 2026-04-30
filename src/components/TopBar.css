@@ -1,6 +1,6 @@
 .topbar {
   height: var(--topbar-height, 64px);
-  padding: 0 2rem;
+  padding: 0 1.5rem;
   background-color: var(--bg-topbar);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -10,6 +10,25 @@
   top: 0;
   z-index: 100;
   backdrop-filter: blur(12px);
+}
+
+.menu-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  margin-left: -8px;
+  margin-right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-main);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s;
+}
+
+.menu-toggle-btn:hover {
+  background-color: var(--bg-main);
 }
 
 .topbar-search {
@@ -446,5 +465,24 @@
   .user-profile-orchestrator {
     margin-left: 0;
     padding-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 0.75rem;
+  }
+
+  .profile-trigger {
+    padding: 4px;
+  }
+
+  .profile-info {
+    display: none;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
   }
 }

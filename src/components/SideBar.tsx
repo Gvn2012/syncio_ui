@@ -20,6 +20,7 @@ import type { RootState, AppDispatch } from '../store';
 import { fetchUserDetail } from '../store/slices/userSlice';
 import { UserAvatar } from './UserAvatar';
 import { selectTotalUnreadCount } from '../store/slices/messagingSlice';
+import { toggleSidebar } from '../store/slices/uiSlice';
 import './SideBar.css';
 
 const navItems = [
@@ -37,6 +38,7 @@ export const SideBar: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { friendRequestCount } = useSelector((state: RootState) => state.notification);
   const { id, userDetail } = useSelector((state: RootState) => state.user);
+  const { isSidebarOpen } = useSelector((state: RootState) => state.ui);
   const totalUnreadCount = useSelector(selectTotalUnreadCount);
 
   useEffect(() => {
@@ -51,6 +53,13 @@ export const SideBar: React.FC = () => {
     }
   }, [id, location.pathname, dispatch]);
 
+  // Close sidebar when navigating on mobile
+  useEffect(() => {
+    if (window.innerWidth <= 768 && isSidebarOpen) {
+      dispatch(toggleSidebar());
+    }
+  }, [location.pathname, dispatch]);
+
   const displayName = userDetail
     ? `${userDetail.userResponse.firstName} ${userDetail.userResponse.lastName}`
     : 'User';
@@ -58,7 +67,7 @@ export const SideBar: React.FC = () => {
   const jobTitle = userDetail?.employments?.[0]?.jobTitle || 'Member';
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="logo-container">
           <div className="logo-icon">

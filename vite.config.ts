@@ -1,43 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import obfuscator from 'vite-plugin-javascript-obfuscator'
+import mkcert from 'vite-plugin-mkcert'
 
 export default defineConfig({
   define: {
     global: 'window',
   },
-  plugins: [react(),
-    obfuscator({
-      options: {
-    compact: true,
-    controlFlowFlattening: false,
-    deadCodeInjection: false,
-    debugProtection: false,
-    debugProtectionInterval: 0,
-    disableConsoleOutput: true,
-    identifierNamesGenerator: 'hexadecimal',
-    log: false,
-    numbersToExpressions: false,
-    renameGlobals: false,
-    selfDefending: true,
-    simplify: true,
-    splitStrings: false,
-    stringArray: true,
-    stringArrayCallsTransform: false,
-    stringArrayEncoding: [],
-    stringArrayIndexShift: true,
-    stringArrayRotate: true,
-    stringArrayShuffle: true,
-    stringArrayWrappersCount: 1,
-    stringArrayWrappersChainedCalls: true,
-    stringArrayWrappersParametersMaxCount: 2,
-    stringArrayWrappersType: 'variable',
-    stringArrayThreshold: 0.75,
-    unicodeEscapeSequence: false
-
-      },
-    }),],
+  plugins: [react(), mkcert()],
   server: {
+    https: {},
+    host: true,
+    hmr: {
+      host: '192.168.1.94',
+    },
     proxy: {
       '/api': {
         target: 'http://syncio.site',
@@ -49,6 +24,18 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
         secure: false,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[Vite Proxy] WebSocket Error:', err);
+          });
+          proxy.on('proxyReqWs', (_proxyReq, _req, socket) => {
+            socket.on('error', (err) => {
+              console.error('[Vite Proxy] Socket Error:', err);
+            });
+          });
+        }
       }
     }
   }

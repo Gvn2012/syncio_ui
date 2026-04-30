@@ -138,3 +138,42 @@
   padding-top: 8px;
   border-top: 1px solid var(--border-color);
 }
+
+@media (max-width: 768px) {
+  .polls-page {
+    padding: 12px;
+  }
+
+  .polls-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .polls-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .polls-header button {
+    padding: 8px !important;
+    border: none !important; /* Force remove border on mobile */
+  }
+
+  .polls-header button span {
+    display: none;
+  }
+
+  .poll-card {
+    padding: 16px;
+  }
+
+  .poll-question {
+    font-size: 15px;
+  }
+
+  .poll-option-content {
+    font-size: 13px;
+  }
+}
+

@@ -237,7 +237,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--border-color);
+  border: none !important; /* Force remove border on mobile */
   background: var(--bg-card);
   color: var(--text-main);
   display: flex;
@@ -247,11 +247,13 @@
   transition: all var(--transition-speed);
 }
 
+
 .reactor-action-btn:hover {
   background: var(--bg-main);
-  border-color: var(--primary);
+  border: none !important; /* Force remove border on mobile */
   color: var(--primary);
 }
+
 
 .reactor-action-btn.is-friend {
   background: var(--primary-alpha-10);

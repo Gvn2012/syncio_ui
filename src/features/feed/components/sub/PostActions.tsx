@@ -90,6 +90,7 @@ export const PostActions: React.FC<PostActionsProps> = ({
           aria-label={`React (${reactionCount})`}
         >
           {getReactionIcon(viewerReaction || ReactionType.LIKE, isReacted)}
+          <span className="action-label" aria-hidden="true">Like</span>
           <span style={{ 
             color: isReacted ? 'var(--text-main)' : 'var(--text-muted)',
             fontWeight: isReacted ? 600 : 400
@@ -105,6 +106,7 @@ export const PostActions: React.FC<PostActionsProps> = ({
         aria-label={`Comment (${commentCount})`}
       >
         <MessageCircle size={18} />
+        <span className="action-label" aria-hidden="true">Comment</span>
         <span>{commentCount}</span>
       </button>
       
@@ -114,8 +116,10 @@ export const PostActions: React.FC<PostActionsProps> = ({
         aria-label={`Share (${shareCount})`}
       >
         <Share2 size={18} />
+        <span className="action-label" aria-hidden="true">Share</span>
         <span>{shareCount}</span>
       </button>
+
     </footer>
   );
 };

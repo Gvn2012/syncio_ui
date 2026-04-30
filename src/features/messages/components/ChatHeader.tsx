@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MoreVertical, Phone, Video, User, BellOff, Trash, Menu } from 'lucide-react';
+import { MoreVertical, Phone, Video, User, BellOff, Trash, Menu, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { type Conversation } from '../types';
 import { useParticipant } from '../hooks/useParticipant';
@@ -45,7 +45,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   return (
     <div className="chat-header">
       <div className="chat-header-info">
-        <button className="icon-btn sidebar-toggle" onClick={onToggleSidebar}>
+        <button 
+          className="mobile-only back-button" 
+          onClick={() => navigate('/messages')}
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <button className="icon-btn sidebar-toggle desktop-only" onClick={onToggleSidebar}>
           <Menu size={20} />
         </button>
         <UserAvatar size={40} userId={otherParticipantId} src={participant?.avatar} showLink={false} />

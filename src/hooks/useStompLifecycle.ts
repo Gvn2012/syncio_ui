@@ -23,9 +23,15 @@ export const useStompLifecycle = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    if (!userId) return;
+    console.log('[STOMP Lifecycle] Effect triggered, userId:', userId);
+    if (!userId) {
+      console.warn('[STOMP Lifecycle] No userId found, skipping connection');
+      return;
+    }
 
-    stompService.connect(userId);
+    stompService.connect(userId).catch(err => {
+      console.error('[STOMP] Connection failed:', err);
+    });
 
     const unsubConnection = stompService.onConnectionChange((connected) => {
       dispatch(setConnectionStatus(connected));
@@ -92,32 +98,36 @@ export const useStompLifecycle = () => {
     );
 
 
+    let visibilityTimer: ReturnType<typeof setTimeout>;
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !stompService.isConnected) {
-        stompService.forceReconnect();
+      clearTimeout(visibilityTimer);
+      if (document.visibilityState === 'visible') {
+        visibilityTimer = setTimeout(() => {
+          if (!stompService.isConnected || !stompService.isHealthy()) {
+            stompService.forceReconnect();
+          }
+        }, 5000);
       }
     };
 
     const onOnline = () => {
-      if (!stompService.isConnected) {
-        stompService.forceReconnect();
-      }
+      setTimeout(() => {
+        if (!stompService.isConnected || !stompService.isHealthy()) {
+          stompService.forceReconnect();
+        }
+      }, 3000);
     };
 
-    const onOffline = () => {
-      dispatch(setConnectionStatus(false));
-    };
 
     document.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
 
     return () => {
+      clearTimeout(visibilityTimer);
       unsubConnection();
       unsubs.forEach(u => u());
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('online', onOnline);
-      window.removeEventListener('offline', onOffline);
       stompService.disconnect();
     };
   }, [userId, dispatch]);

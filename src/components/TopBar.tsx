@@ -22,10 +22,12 @@ import {
   FileText, 
   Loader2, 
   XCircle,
-  Clock
+  Clock,
+  Menu
 } from 'lucide-react';
 import './TopBar.css';
 import { CachedImage } from './common/CachedImage';
+import { toggleSidebar } from '../store/slices/uiSlice';
 
 export const TopBar: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -111,6 +113,13 @@ export const TopBar: React.FC = () => {
 
   return (
     <header className="topbar">
+      <button 
+        className="mobile-only menu-toggle-btn"
+        onClick={() => dispatch(toggleSidebar())}
+      >
+        <Menu size={24} />
+      </button>
+
       <div className="topbar-search">
         <div className="search-container" ref={searchContainerRef}>
           <Search size={18} className="search-icon" />

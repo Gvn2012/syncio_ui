@@ -36,7 +36,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({ selected, on
             className={`category-pill ${isActive ? 'active' : ''}`}
             onClick={() => onSelect(cat.id)}
             style={{ '--active-color': cat.color } as React.CSSProperties}
+            title={cat.label}
+            aria-label={cat.label}
           >
+
             {isActive && (
               <motion.div
                 layoutId="active-category-pill"

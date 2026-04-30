@@ -51,3 +51,10 @@
   transform: translateX(-4px);
   transition: all 0.3s ease;
 }
+
+@media (max-width: 768px) {
+  .reaction-total-count {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
