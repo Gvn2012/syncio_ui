@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Clock, Trash } from 'lucide-react';
+import { Edit, Clock, Trash, Phone, Video } from 'lucide-react';
 import { type MessageResponse, MessageContentType } from '../types';
 import type { MediaItem } from '../types';
 import { MediaItemRenderer, getMediaUrl } from './MediaItemRenderer';
@@ -143,6 +143,21 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
 
   const msg = group.messages[0];
   const isExpanded = expandedMessageId === msg.id;
+
+  if (msg.type === MessageContentType.CALL_VOICE || msg.type === MessageContentType.CALL_VIDEO) {
+    const isVideo = msg.type === MessageContentType.CALL_VIDEO;
+    return (
+      <div key={msg.id} className="call-log-message">
+        <div className="call-log-icon">
+          {isVideo ? <Video size={16} /> : <Phone size={16} />}
+        </div>
+        <div className="call-log-content">
+          <span className="call-log-text">{msg.content}</span>
+          <span className="call-log-time">{formatTimestamp(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 

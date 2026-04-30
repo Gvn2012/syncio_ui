@@ -28,6 +28,7 @@ import { MessageGroup } from '../components/MessageGroup';
 import { MessageInput } from '../components/MessageInput';
 import { useWebRTC, CallState } from '../hooks/useWebRTC';
 import { IncomingCallModal, ActiveCallBar } from '../components/CallComponents';
+import { VideoCallScreen } from '../components/VideoCallScreen';
 
 const formatTimestamp = (timestamp: string | undefined): Date => {
   if (!timestamp) return new Date();
@@ -44,7 +45,7 @@ export const MessagesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, sendTyping, deleteConversation } = useMessaging();
   
-  const { callState, callerInfo, duration, isMuted, localStream, remoteStream, initiateCall, answerCall, rejectCall, endCall, toggleMute } = useWebRTC();
+  const { callState, callMode, isVideoEnabled, callerInfo, duration, isMuted, localStream, remoteStream, initiateCall, answerCall, rejectCall, endCall, toggleMute, toggleVideo } = useWebRTC();
   
   const { conversations, messagesByConversation, paginationByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers, isConnected } = useSelector(
     (state: RootState) => state.messaging
@@ -511,15 +512,31 @@ export const MessagesPage: React.FC = () => {
       {callState === CallState.INBOUND_RINGING && (
         <IncomingCallModal 
           callerInfo={callerInfo} 
+          callMode={callMode}
           onAccept={answerCall} 
           onReject={rejectCall} 
         />
       )}
-      {callState === CallState.CONNECTED && (
+      {callState === CallState.CONNECTED && callMode === 'VIDEO' && (
+        <VideoCallScreen 
+          remoteStream={remoteStream}
+          localStream={localStream}
+          callerInfo={callerInfo}
+          duration={duration}
+          isMuted={isMuted}
+          isVideoEnabled={isVideoEnabled}
+          onToggleMute={toggleMute}
+          onToggleVideo={toggleVideo}
+          onEndCall={endCall}
+        />
+      )}
+      {callState === CallState.CONNECTED && callMode === 'VOICE' && (
         <ActiveCallBar 
           duration={duration} 
           isMuted={isMuted} 
+          isVideoEnabled={isVideoEnabled}
           onToggleMute={toggleMute} 
+          onToggleVideo={toggleVideo}
           onEndCall={endCall} 
           remoteStream={remoteStream}
           localStream={localStream}
@@ -558,7 +575,6 @@ export const MessagesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Window */}
       <div className="chat-window">
         {activeChat ? (
           <>
@@ -571,7 +587,11 @@ export const MessagesPage: React.FC = () => {
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               onCallClick={() => {
                 const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
-                if (otherId) initiateCall(otherId);
+                if (otherId) initiateCall(otherId, 'VOICE', activeChat.id);
+              }}
+              onVideoCallClick={() => {
+                const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
+                if (otherId) initiateCall(otherId, 'VIDEO', activeChat.id);
               }}
             />
 

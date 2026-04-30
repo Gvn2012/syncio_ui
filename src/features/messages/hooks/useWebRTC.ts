@@ -10,6 +10,8 @@ export enum CallState {
 
 export const useWebRTC = () => {
   const [callState, setCallState] = useState<CallState>(CallState.IDLE);
+  const [callMode, setCallMode] = useState<'VOICE' | 'VIDEO'>('VOICE');
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [callerInfo, setCallerInfo] = useState<{ id: string; name?: string; avatar?: string } | null>(null);
@@ -18,6 +20,7 @@ export const useWebRTC = () => {
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const targetUserIdRef = useRef<string | null>(null);
+  const conversationIdRef = useRef<string | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
@@ -81,7 +84,7 @@ export const useWebRTC = () => {
 
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
+        setRemoteStream(new MediaStream(event.streams[0].getTracks()));
       }
     };
 
@@ -99,15 +102,19 @@ export const useWebRTC = () => {
     return pc;
   }, [sendSignal]);
 
-  const initLocalStream = async () => {
+  const initLocalStream = async (mode: 'VOICE' | 'VIDEO') => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const constraints = { audio: true, video: mode === 'VIDEO' };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
       localStreamRef.current = stream;
+      if (mode === 'VIDEO') {
+        setIsVideoEnabled(true);
+      }
       return stream;
     } catch (err) {
       console.error('Failed to get local stream', err);
-      alert('Could not access microphone.');
+      alert('Could not access microphone/camera.');
       return null;
     }
   };
@@ -117,6 +124,9 @@ export const useWebRTC = () => {
       sendSignal({
         type: 'CALL_ENDED',
         recipientId: targetUserIdRef.current,
+        callMode,
+        conversationId: conversationIdRef.current,
+        payload: { duration }
       });
     }
 
@@ -129,16 +139,21 @@ export const useWebRTC = () => {
     setCallState(CallState.IDLE);
     setCallerInfo(null);
     targetUserIdRef.current = null;
+    conversationIdRef.current = null;
     setDuration(0);
     setIsMuted(false);
+    setIsVideoEnabled(false);
+    setCallMode('VOICE');
     iceCandidatesQueue.current = [];
-  }, [callState, sendSignal]);
+  }, [callState, sendSignal, callMode, duration]);
 
-  const initiateCall = async (recipientId: string) => {
+  const initiateCall = async (recipientId: string, mode: 'VOICE' | 'VIDEO' = 'VOICE', conversationId?: string) => {
     targetUserIdRef.current = recipientId;
+    conversationIdRef.current = conversationId || null;
+    setCallMode(mode);
     setCallState(CallState.OUTBOUND_RINGING);
     
-    const stream = await initLocalStream();
+    const stream = await initLocalStream(mode);
     if (!stream) return endCall();
 
     const pc = createPeerConnection();
@@ -150,6 +165,8 @@ export const useWebRTC = () => {
     sendSignal({
       type: 'CALL_OFFER',
       recipientId,
+      callMode: mode,
+      conversationId,
       payload: offer
     });
   };
@@ -160,7 +177,7 @@ export const useWebRTC = () => {
       return;
     }
     
-    const stream = await initLocalStream();
+    const stream = await initLocalStream(callMode);
     if (!stream) return endCall();
 
     const pc = pcRef.current;
@@ -191,7 +208,10 @@ export const useWebRTC = () => {
       sendSignal({
         type: 'CALL_REJECTED',
         recipientId: targetUserIdRef.current,
+        callMode,
+        conversationId: conversationIdRef.current,
       });
+      targetUserIdRef.current = null;
     }
     endCall();
   };
@@ -206,6 +226,64 @@ export const useWebRTC = () => {
     }
   };
 
+  const toggleVideo = async () => {
+    if (!pcRef.current || !localStreamRef.current) return;
+
+    if (isVideoEnabled) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.stop();
+        localStreamRef.current.removeTrack(videoTrack);
+        const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) {
+          pcRef.current.removeTrack(sender);
+        }
+      }
+      setIsVideoEnabled(false);
+      setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+      
+      const offer = await pcRef.current.createOffer();
+      await pcRef.current.setLocalDescription(offer);
+      
+      if (targetUserIdRef.current) {
+        sendSignal({
+          type: 'CALL_OFFER',
+          recipientId: targetUserIdRef.current,
+          callMode: 'VOICE',
+          conversationId: conversationIdRef.current,
+          payload: offer
+        });
+      }
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoTrack = stream.getVideoTracks()[0];
+        
+        localStreamRef.current.addTrack(videoTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+        
+        pcRef.current.addTrack(videoTrack, localStreamRef.current);
+        setIsVideoEnabled(true);
+        setCallMode('VIDEO');
+
+        const offer = await pcRef.current.createOffer();
+        await pcRef.current.setLocalDescription(offer);
+        
+        if (targetUserIdRef.current) {
+          sendSignal({
+            type: 'CALL_OFFER',
+            recipientId: targetUserIdRef.current,
+            callMode: 'VIDEO',
+            conversationId: conversationIdRef.current,
+            payload: offer
+          });
+        }
+      } catch (err) {
+        console.error('Failed to access camera:', err);
+      }
+    }
+  };
+
   useEffect(() => {
     const handleSignal = async (e: CustomEvent) => {
       const signal = e.detail;
@@ -214,10 +292,31 @@ export const useWebRTC = () => {
       switch (signal.type) {
         case 'CALL_OFFER':
           if (callState !== CallState.IDLE) {
-            sendSignal({ type: 'CALL_REJECTED', recipientId: senderId });
+            if (senderId === targetUserIdRef.current && callState === CallState.CONNECTED) {
+              setCallMode(signal.callMode || 'VOICE');
+              try {
+                if (pcRef.current) {
+                  await pcRef.current.setRemoteDescription(new RTCSessionDescription(signal.payload));
+                  const answer = await pcRef.current.createAnswer();
+                  await pcRef.current.setLocalDescription(answer);
+                  sendSignal({
+                    type: 'CALL_ANSWER',
+                    recipientId: senderId,
+                    payload: answer
+                  });
+                }
+              } catch (err) {
+                console.error('Renegotiation failed', err);
+              }
+            } else {
+              sendSignal({ type: 'CALL_REJECTED', recipientId: senderId });
+            }
             return;
           }
+          
           targetUserIdRef.current = senderId;
+          conversationIdRef.current = signal.conversationId || null;
+          setCallMode(signal.callMode || 'VOICE');
           setCallerInfo({ id: senderId });
           setCallState(CallState.INBOUND_RINGING);
           
@@ -294,6 +393,8 @@ export const useWebRTC = () => {
 
   return {
     callState,
+    callMode,
+    isVideoEnabled,
     localStream,
     remoteStream,
     callerInfo,
@@ -303,6 +404,7 @@ export const useWebRTC = () => {
     answerCall,
     rejectCall,
     endCall,
-    toggleMute
+    toggleMute,
+    toggleVideo
   };
 };

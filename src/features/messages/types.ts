@@ -16,7 +16,9 @@ export enum MessageContentType {
   AUDIO = 'AUDIO',
   IMAGE_PENDING = 'IMAGE_PENDING',
   VIDEO_PENDING = 'VIDEO_PENDING',
-  AUDIO_PENDING = 'AUDIO_PENDING'
+  AUDIO_PENDING = 'AUDIO_PENDING',
+  CALL_VOICE = 'CALL_VOICE',
+  CALL_VIDEO = 'CALL_VIDEO'
 }
 
 export interface StatusInfo {
