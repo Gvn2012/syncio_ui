@@ -18,7 +18,8 @@ export enum MessageContentType {
   VIDEO_PENDING = 'VIDEO_PENDING',
   AUDIO_PENDING = 'AUDIO_PENDING',
   CALL_VOICE = 'CALL_VOICE',
-  CALL_VIDEO = 'CALL_VIDEO'
+  CALL_VIDEO = 'CALL_VIDEO',
+  SYSTEM = 'SYSTEM'
 }
 
 export interface StatusInfo {
@@ -74,12 +75,23 @@ export interface Message {
   isOptimistic?: boolean;
 }
 
+export interface ParticipantPreview {
+  userId: string;
+  displayName: string;
+  profilePictureUrl?: string;
+}
+
 export interface Conversation {
   id: string;
   type: ConversationType;
   name?: string;
+  groupAvatar?: string;
+  description?: string;
+  adminIds?: string[];
+  maxSize?: number;
   participants: string[];
   participantDetails?: Participant[];
+  participantPreviews?: ParticipantPreview[];
   lastMessage?: Message;
   unreadCount?: number;
   isPinned?: boolean;

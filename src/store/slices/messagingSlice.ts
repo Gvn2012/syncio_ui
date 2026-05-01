@@ -144,21 +144,31 @@ const messagingSlice = createSlice({
       }
       const index = state.messagesByConversation[conversationId].findIndex(m => m.id === action.payload.id);
       
-      const conv = state.conversations.find(c => c.id === conversationId);
+      const convIndex = state.conversations.findIndex(c => c.id === conversationId);
       
       if (index === -1) {
         state.messagesByConversation[conversationId].push(action.payload);
-        if (conv) {
+        if (convIndex !== -1) {
+          const conv = state.conversations[convIndex];
           conv.lastMessage = action.payload;
           if (state.activeConversationId !== conversationId && senderId !== state.userId) {
             conv.unreadCount = (conv.unreadCount || 0) + 1;
             state.totalUnreadCount++;
           }
+          // Move conversation to the top
+          state.conversations.splice(convIndex, 1);
+          state.conversations.unshift(conv);
         }
       } else {
         state.messagesByConversation[conversationId][index] = action.payload;
-        if (conv) {
+        if (convIndex !== -1) {
+          const conv = state.conversations[convIndex];
           conv.lastMessage = action.payload;
+          // Also move to top on update if it's the last message (e.g. status change or edited)
+          // But usually only new messages trigger a move to top. 
+          // For consistency with most chat apps, we'll move it to top.
+          state.conversations.splice(convIndex, 1);
+          state.conversations.unshift(conv);
         }
       }
     },
@@ -206,8 +216,14 @@ const messagingSlice = createSlice({
       state.conversations = action.payload;
     },
     addConversation: (state, action: PayloadAction<Conversation>) => {
-      if (!state.conversations.find(c => c.id === action.payload.id)) {
+      const index = state.conversations.findIndex(c => c.id === action.payload.id);
+      if (index === -1) {
         state.conversations.unshift(action.payload);
+      } else {
+        state.conversations[index] = {
+          ...state.conversations[index],
+          ...action.payload
+        };
       }
     },
     setUserPresence: (state, action: PayloadAction<{ userId: string, status: 'ONLINE' | 'OFFLINE' }>) => {

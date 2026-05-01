@@ -43,6 +43,17 @@ export const useMessaging = () => {
     });
   }, [userId, dispatch]);
 
+  const sendSystemMessage = useCallback((conversationId: string, content: string) => {
+    const messageId = crypto.randomUUID();
+    stompService.publish('/app/chat.send', {
+      id: messageId,
+      conversationId,
+      senderId: userId,
+      content,
+      type: MessageContentType.SYSTEM
+    });
+  }, [userId]);
+
   const markAsSeen = useCallback((conversationId: string) => {
     stompService.publish('/app/chat.read', conversationId);
   }, []);
@@ -75,5 +86,21 @@ export const useMessaging = () => {
     stompService.publish('/app/call.signal', signal);
   }, []);
 
-  return { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, deleteConversation, sendTyping, sendSignal };
+  const createGroup = useCallback((name: string, participantIds: string[]) => {
+    stompService.publish('/app/group.create', { name, participantIds });
+  }, []);
+
+  const updateGroup = useCallback((conversationId: string, updates: { name?: string, description?: string, groupAvatar?: string }) => {
+    stompService.publish('/app/group.update', { conversationId, ...updates });
+  }, []);
+
+  const leaveGroup = useCallback((conversationId: string) => {
+    stompService.publish('/app/group.leave', { conversationId });
+  }, []);
+
+  const manageGroupMembers = useCallback((conversationId: string, userId: string, action: 'ADD' | 'REMOVE' | 'PROMOTE' | 'DEMOTE') => {
+    stompService.publish('/app/group.members', { conversationId, userId, action });
+  }, []);
+
+  return { sendMessage, sendSystemMessage, markAsSeen, editMessage, deleteMessage, recallMessage, deleteConversation, sendTyping, sendSignal, createGroup, updateGroup, leaveGroup, manageGroupMembers };
 };

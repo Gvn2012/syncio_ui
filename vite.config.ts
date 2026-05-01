@@ -11,7 +11,7 @@ export default defineConfig({
     https: {},
     host: true,
     hmr: {
-      host: '192.168.1.94',
+      host: '192.168.1.7',
     },
     proxy: {
       '/api': {

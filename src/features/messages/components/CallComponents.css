@@ -288,3 +288,79 @@
     opacity: .5;
   }
 }
+
+.incoming-call-card.outgoing::before {
+  background: linear-gradient(90deg, #3b82f6, #6366f1, #3b82f6);
+}
+
+.avatar-ping.outbound {
+  border-color: #3b82f6;
+}
+
+.incoming-call-card.outgoing .incoming-call-info p {
+  color: #3b82f6;
+}
+
+.group-avatar-placeholder {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+/* ----------------------- PILL MODE STYLES ----------------------- */
+.incoming-call-card.pill-mode {
+  padding: 8px 16px 8px 8px;
+  border-radius: 50px;
+  gap: 12px;
+  min-width: unset;
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.15), 0 4px 12px -4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+}
+
+[data-theme='dark'] .incoming-call-card.pill-mode {
+  background: rgba(24, 24, 27, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5), 0 4px 12px -4px rgba(0, 0, 0, 0.3);
+}
+
+.incoming-call-card.pill-mode::before {
+  display: none;
+}
+
+.incoming-call-card.pill-mode .incoming-call-info {
+  margin-right: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.incoming-call-card.pill-mode .incoming-call-info h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
+}
+
+.incoming-call-card.pill-mode .incoming-call-info p {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  animation: none;
+}
+
+.incoming-call-card.pill-mode .incoming-call-actions {
+  gap: 8px;
+}
+
+.incoming-call-card.pill-mode .btn-reject,
+.incoming-call-card.pill-mode .btn-accept {
+  width: 36px;
+  height: 36px;
+  box-shadow: none;
+}
+
+.incoming-call-card.pill-mode .avatar-ping {
+  inset: -4px;
+  border-width: 2px;
+}

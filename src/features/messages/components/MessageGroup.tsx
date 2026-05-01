@@ -1,10 +1,12 @@
 import React from 'react';
-import { Edit, Clock, Trash, Phone, Video } from 'lucide-react';
+import { Edit, Clock, Trash, Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed } from 'lucide-react';
 import { type MessageResponse, MessageContentType } from '../types';
 import type { MediaItem } from '../types';
 import { MediaItemRenderer, getMediaUrl } from './MediaItemRenderer';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { useParticipant } from '../hooks/useParticipant';
+import { useSelector } from 'react-redux';
+import { type RootState } from '../../../store';
 
 
 const resolveSignedUrl = (item: MediaItem, signedUrls: Record<string, string>): string | undefined => {
@@ -51,8 +53,30 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
   avatars = {}
 }) => {
   const isSent = group.senderId === currentUserId;
-  const { participant } = useParticipant(avatars[group.senderId] ? undefined : group.senderId);
+  const { participant } = useParticipant((avatars[group.senderId] || group.senderId === 'SYSTEM') ? undefined : group.senderId);
   const avatarSrc = avatars[group.senderId] || participant?.avatar;
+  const { dateFormat, dateSeparator } = useSelector((state: RootState) => state.preferences);
+
+  const formatMessageTime = (date: Date) => {
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getFullYear() === today.getFullYear();
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return timeStr;
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+
+    let dateStr = '';
+    if (dateFormat === 'DD-MM-YYYY') dateStr = `${day}${dateSeparator}${month}${dateSeparator}${year}`;
+    else if (dateFormat === 'MM-DD-YYYY') dateStr = `${month}${dateSeparator}${day}${dateSeparator}${year}`;
+    else dateStr = `${year}${dateSeparator}${month}${dateSeparator}${day}`;
+
+    return `${dateStr} ${timeStr}`;
+  };
 
   if (group.isMediaGroup) {
     return (
@@ -73,7 +97,7 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
           }}>
             {group.messages.map((msg: MessageResponse) => {
               const isPending = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING || msg.type === MessageContentType.AUDIO_PENDING;
-              
+
               const allImageUrls = group.messages.flatMap((m: MessageResponse) => 
                 m.mediaItems?.filter(i => i.mediaType === 'IMAGE').map(i => getMediaUrl(i.downloadUrl || i.uploadUrl, resolveSignedUrl(i, signedUrls))) || 
                 (m.type === MessageContentType.IMAGE && m.mediaUrl ? [getMediaUrl(m.mediaUrl, signedUrls[m.mediaUrl])] : [])
@@ -97,7 +121,6 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
                   />
                 ));
               }
-              
               return (
                 <MediaItemRenderer 
                   key={msg.id} 
@@ -132,7 +155,7 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
           ))}
           <div className="message-meta-interactive">
              <span className="time">
-                {formatTimestamp(group.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatMessageTime(formatTimestamp(group.timestamp))}
              </span>
              {isSent && getStatusIcon(group.messages[group.messages.length - 1])}
           </div>
@@ -146,23 +169,43 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
 
   if (msg.type === MessageContentType.CALL_VOICE || msg.type === MessageContentType.CALL_VIDEO) {
     const isVideo = msg.type === MessageContentType.CALL_VIDEO;
+    const isMissed = msg.content?.toLowerCase().includes('missed');
+    const isOutgoing = msg.senderId === currentUserId;
+
+    const DirectionIcon = isMissed ? PhoneMissed : isOutgoing ? PhoneOutgoing : PhoneIncoming;
+    const CallTypeIcon = isVideo ? Video : Phone;
+    const variant = isMissed ? 'missed' : 'completed';
+
     return (
-      <div key={msg.id} className="call-log-message">
-        <div className="call-log-icon">
-          {isVideo ? <Video size={16} /> : <Phone size={16} />}
+      <div key={msg.id} className={`call-log-message call-log-${variant}`}>
+        <div className={`call-log-icon call-log-icon-${variant}`}>
+          <CallTypeIcon size={16} />
         </div>
         <div className="call-log-content">
+          <DirectionIcon size={14} className={`call-log-direction call-log-direction-${variant}`} />
           <span className="call-log-text">{msg.content}</span>
-          <span className="call-log-time">{formatTimestamp(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="call-log-time">{formatMessageTime(formatTimestamp(msg.timestamp))}</span>
         </div>
       </div>
     );
   }
 
+  if (msg.type === MessageContentType.SYSTEM) {
+    return (
+      <div key={msg.id} className="system-message">
+        <div className="system-message-content">
+          <span className="system-message-text">{msg.content}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const showMeta = isExpanded || isLastInConversation;
+
   return (
     <div 
       key={msg.id} 
-      className={`message-group ${isSent ? 'sent' : 'received'} ${isConsecutiveGroup ? 'grouped' : 'first-in-group'} ${isExpanded ? 'expanded' : ''}`}
+      className={`message-group ${isSent ? 'sent' : 'received'} ${isConsecutiveGroup ? 'grouped' : 'first-in-group'} ${isExpanded ? 'expanded' : ''} ${!showMeta ? 'hide-meta' : ''}`}
       onClick={() => setExpandedMessageId(isExpanded ? null : msg.id)}
     >
       {!isSent && !isConsecutiveGroup && (
@@ -175,16 +218,20 @@ export const MessageGroup = React.memo<MessageGroupProps>(({
           </div>
         </div>
         <div className="message-meta-interactive">
-          <span className="time">
-             {formatTimestamp(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-            {msg.isEdited && !msg.isRecalled && (
-              <span className="edited-indicator" title="Edited">
-                <Edit size={10} />
+          {showMeta && (
+            <>
+              <span className="time">
+                 {formatMessageTime(formatTimestamp(msg.timestamp))}
               </span>
-            )}
-            {isSent && !msg.isRecalled && getStatusIcon(msg)}
-            {isExpanded && !msg.isRecalled && (
+              {msg.isEdited && !msg.isRecalled && (
+                <span className="edited-indicator" title="Edited">
+                  <Edit size={10} />
+                </span>
+              )}
+              {isSent && !msg.isRecalled && getStatusIcon(msg)}
+            </>
+          )}
+          {isExpanded && !msg.isRecalled && (
               <div className="message-actions">
                 {isSent && (new Date().getTime() - formatTimestamp(msg.timestamp).getTime() < 6 * 60 * 60 * 1000) && (
                   <>

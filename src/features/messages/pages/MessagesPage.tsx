@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, Check, CheckCheck, Loader, AlertTriangle, Trash, ArrowDown, Eye, Menu } from 'lucide-react';
+import { Search, Plus, Check, CheckCheck, Loader, AlertTriangle, Trash, ArrowDown, Eye, Menu, LogOut } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ConversationType, MessageStatusType, MessageContentType } from '../types';
 import type { MessageResponse } from '../types';
@@ -8,6 +8,7 @@ import { uploadService, isUrlExpired } from '../../../api/upload.service';
 import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
 import { openLightbox, showError, toggleSidebar } from '../../../store/slices/uiSlice';
 import { useMessaging } from '../hooks/useMessaging';
+import { useHEIC } from '../../../hooks/useHEIC';
 import { 
   fetchConversations, 
   fetchMessages, 
@@ -23,12 +24,17 @@ import './MessagesPage.css';
 
 import { ChatItem } from '../components/ChatItem';
 import { ChatHeader } from '../components/ChatHeader';
+import { TypingIndicator } from '../components/TypingIndicator';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { MessageGroup } from '../components/MessageGroup';
 import { MessageInput } from '../components/MessageInput';
+import CreateGroupModal from '../components/CreateGroupModal';
+import { GroupSettingsModal } from '../components/GroupSettingsModal';
 import { useWebRTC, CallState } from '../hooks/useWebRTC';
-import { IncomingCallModal, ActiveCallBar } from '../components/CallComponents';
-import { VideoCallScreen } from '../components/VideoCallScreen';
+import { IncomingCallModal, ActiveCallBar, OutgoingCallModal } from '../components/CallComponents';
+import { VideoCallScreen } from '../components/VideoCallScreen/VideoCallScreen';
+import { GroupCallScreen } from '../components/GroupCallScreen';
+import { callApi } from '../api/call.service';
 
 const formatTimestamp = (timestamp: string | undefined): Date => {
   if (!timestamp) return new Date();
@@ -38,22 +44,80 @@ const formatTimestamp = (timestamp: string | undefined): Date => {
 };
 
 export const MessagesPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const convid = searchParams.get('convid');
   
   const dispatch = useDispatch<AppDispatch>();
-  const { sendMessage, markAsSeen, editMessage, deleteMessage, recallMessage, sendTyping, deleteConversation } = useMessaging();
+  const { processFiles } = useHEIC();
+  const { sendMessage, sendSystemMessage, markAsSeen, editMessage, deleteMessage, recallMessage, sendTyping, deleteConversation, createGroup, leaveGroup, updateGroup, manageGroupMembers } = useMessaging();
   
-  const { callState, callMode, isVideoEnabled, callerInfo, duration, isMuted, localStream, remoteStream, initiateCall, answerCall, rejectCall, endCall, toggleMute, toggleVideo } = useWebRTC();
+  const { callState, callMode, isVideoEnabled, callerInfo, duration, isMuted, localStream, remoteStreams, initiateCall, answerCall, rejectCall, endCall, toggleMute, toggleVideo, conversationId: webrtcConvId, isGroupCall, reconnectToCall, callId } = useWebRTC();
   
   const { conversations, messagesByConversation, paginationByConversation, activeConversationId: storeActiveId, loading, onlineUsers, typingUsers, isConnected } = useSelector(
     (state: RootState) => state.messaging
   );
   const totalUnreadCount = useSelector(selectTotalUnreadCount);
-  const currentUserId = useSelector((state: RootState) => state.user.id);
+  const currentUser = useSelector((state: RootState) => state.user);
+  const currentUserId = currentUser.id;
 
   const activeConversationId = storeActiveId || convid;
+  const [prevCallState, setPrevCallState] = useState<CallState>(CallState.IDLE);
+
+  useEffect(() => {
+    const initialCallId = searchParams.get('call');
+
+    
+    if (initialCallId && callState === CallState.IDLE) {
+      callApi.getCallSession(initialCallId)
+        .then(session => {
+          if (session.status === 'ACTIVE') {
+             reconnectToCall(initialCallId, session.callMode as any, session.conversationId);
+          } else {
+             throw new Error('Call inactive');
+          }
+        })
+        .catch(() => {
+          const newParams = new URLSearchParams(searchParams);
+          newParams.delete('call');
+          newParams.delete('mode');
+          setSearchParams(newParams, { replace: true });
+          dispatch(showError('This call has ended or is unavailable'));
+        });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (callState === CallState.CONNECTED || callState === CallState.OUTBOUND_RINGING) {
+      const currentCallId = searchParams.get('call');
+      const currentMode = searchParams.get('mode');
+      
+      if (callId && (currentCallId !== callId || currentMode !== callMode)) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('call', callId);
+        if (callMode) newParams.set('mode', callMode);
+        setSearchParams(newParams, { replace: true });
+      }
+    } else if (callState === CallState.IDLE) {
+      if (searchParams.has('call') || searchParams.has('mode')) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('call');
+        newParams.delete('mode');
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [callState, callId, callMode, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (webrtcConvId && isGroupCall) {
+      if (prevCallState !== CallState.CONNECTED && callState === CallState.CONNECTED) {
+        sendSystemMessage(webrtcConvId, `${currentUser.username || 'A user'} joined the call`);
+      } else if (prevCallState === CallState.CONNECTED && callState === CallState.IDLE) {
+        sendSystemMessage(webrtcConvId, `${currentUser.username || 'A user'} left the call`);
+      }
+    }
+    setPrevCallState(callState);
+  }, [callState, webrtcConvId, isGroupCall, sendSystemMessage, prevCallState, currentUser]);
 
   interface UploadingItem {
     id: string;
@@ -68,7 +132,26 @@ export const MessagesPage: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'info' | 'members'>('info');
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [expectingNewGroup, setExpectingNewGroup] = useState<boolean>(false);
+  const prevConversationsCount = useRef(conversations.length);
+
+  useEffect(() => {
+    if (expectingNewGroup && conversations.length > prevConversationsCount.current) {
+      const newConv = conversations[0]; 
+      if (newConv && newConv.adminIds?.includes(currentUserId || '')) {
+        navigate(`/messages?convid=${newConv.id}`);
+        setExpectingNewGroup(false);
+      }
+    }
+    prevConversationsCount.current = conversations.length;
+  }, [conversations, expectingNewGroup, currentUserId, navigate]);
+
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingSentRef = useRef<boolean>(false);
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
   const prevUploadingCount = useRef(0);
   const [confirmModal, setConfirmModal] = useState<{
@@ -88,7 +171,6 @@ export const MessagesPage: React.FC = () => {
     type: 'danger',
     icon: null
   });
-  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +202,9 @@ export const MessagesPage: React.FC = () => {
       const isPendingMedia = msg.type === MessageContentType.IMAGE_PENDING || msg.type === MessageContentType.VIDEO_PENDING || msg.type === MessageContentType.AUDIO_PENDING;
       if (isPendingMedia && msg.senderId !== currentUserId) return;
 
-      const isMedia = msg.type && msg.type !== MessageContentType.TEXT;
+      const isCallLog = msg.type === MessageContentType.CALL_VOICE || msg.type === MessageContentType.CALL_VIDEO;
+      const isSystem = msg.type === MessageContentType.SYSTEM;
+      const isMedia = msg.type && msg.type !== MessageContentType.TEXT && !isCallLog && !isSystem;
       if (isMedia) {
         const isSameBatch = msg.batchId && currentGroup && currentGroup.isMediaGroup && 
                             currentGroup.senderId === msg.senderId && currentGroup.batchId === msg.batchId;
@@ -294,6 +378,74 @@ export const MessagesPage: React.FC = () => {
     return null;
   }, [activeConversationId, conversations]);
 
+  useEffect(() => {
+    if (!activeConversationId || !currentUserId || !activeChat) return;
+
+    const recipientId = activeChat.type === ConversationType.GROUP 
+      ? '' 
+      : activeChat.participants.find((id: string) => id !== currentUserId) || '';
+      
+    if (activeChat.type !== ConversationType.GROUP && !recipientId) return;
+
+    if (!inputText.trim()) {
+      if (isTypingSentRef.current) {
+        sendTyping(activeConversationId, recipientId, false);
+        isTypingSentRef.current = false;
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (!isTypingSentRef.current) {
+      sendTyping(activeConversationId, recipientId, true);
+      isTypingSentRef.current = true;
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(activeConversationId, recipientId, false);
+      isTypingSentRef.current = false;
+      typingTimeoutRef.current = null;
+    }, 3000);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [inputText, activeConversationId, currentUserId, activeChat, sendTyping]);
+
+  useEffect(() => {
+    const cid = activeConversationId;
+    const uid = currentUserId;
+    const chat = activeChat;
+    
+    return () => {
+      if (isTypingSentRef.current && cid && uid && chat) {
+        const recipientId = chat.type === ConversationType.GROUP 
+          ? '' 
+          : chat.participants.find((id: string) => id !== uid) || '';
+          
+        if (recipientId || chat.type === ConversationType.GROUP) {
+          sendTyping(cid, recipientId, false);
+          isTypingSentRef.current = false;
+        }
+      }
+    };
+  }, [activeConversationId, currentUserId, activeChat, sendTyping]);
+
+  const handleCreateGroup = useCallback((name: string, participantIds: string[]) => {
+    setCreatingGroup(true);
+    setExpectingNewGroup(true);
+    createGroup(name, participantIds);
+    setIsCreateGroupModalOpen(false);
+    setTimeout(() => setCreatingGroup(false), 2000);
+  }, [createGroup]);
+
   const participantAvatars = useMemo(() => {
     const map: Record<string, string> = {};
     activeChat?.participantDetails?.forEach((p: any) => {
@@ -330,6 +482,40 @@ export const MessagesPage: React.FC = () => {
     return paginationByConversation[activeConversationId] || { hasMore: true, loadingMore: false };
   }, [activeConversationId, paginationByConversation]);
 
+  const handleLeaveGroup = useCallback(() => {
+    if (!activeConversationId) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'Leave Group',
+      message: 'Are you sure you want to leave this group? You will no longer receive messages from this conversation.',
+      confirmText: 'Leave',
+      onConfirm: () => {
+        leaveGroup(activeConversationId);
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        navigate('/messages');
+      },
+      type: 'danger',
+      icon: <LogOut size={24} />
+    });
+  }, [activeConversationId, leaveGroup, navigate]);
+
+  const handleAddMember = useCallback(() => {
+    if (!activeConversationId) return;
+    setActiveSettingsTab('members');
+    setIsGroupSettingsOpen(true);
+  }, [activeConversationId]);
+
+  const handleChangeGroupName = useCallback(() => {
+    if (!activeConversationId) return;
+    setActiveSettingsTab('info');
+    setIsGroupSettingsOpen(true);
+  }, [activeConversationId]);
+
+  const handleManageMember = useCallback((userId: string, action: 'ADD' | 'REMOVE' | 'PROMOTE' | 'DEMOTE') => {
+    if (!activeConversationId) return;
+    manageGroupMembers(activeConversationId, userId, action);
+  }, [activeConversationId, manageGroupMembers]);
+
   const handleMessagesScroll = useCallback(() => {
     const el = messagesScrollRef.current;
     if (!el || !activeConversationId) return;
@@ -348,11 +534,19 @@ export const MessagesPage: React.FC = () => {
 
   const handleSendMessage = () => {
     if (!inputText.trim() || !activeConversationId) return;
-    // Clear typing indicator immediately
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
     if (activeChat && currentUserId) {
-      const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
-      if (otherId) sendTyping(activeConversationId, otherId, false);
+      const recipientId = activeChat.type === ConversationType.GROUP 
+        ? '' 
+        : activeChat.participants.find((id: string) => id !== currentUserId) || '';
+        
+      if ((recipientId || activeChat.type === ConversationType.GROUP) && isTypingSentRef.current) {
+        sendTyping(activeConversationId, recipientId, false);
+        isTypingSentRef.current = false;
+      }
     }
 
     if (editingMessageId) {
@@ -367,8 +561,9 @@ export const MessagesPage: React.FC = () => {
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0 || !activeConversationId || !currentUserId) return;
+    const rawFiles = Array.from(e.target.files || []);
+    if (rawFiles.length === 0 || !activeConversationId || !currentUserId) return;
+    const files = await processFiles(rawFiles);
     if (files.length > 25) { dispatch(showError('Maximum 25 items allowed per upload')); return; }
 
     const audioFiles = files.filter(f => f.type.startsWith('audio/'));
@@ -493,7 +688,8 @@ export const MessagesPage: React.FC = () => {
 
   const otherParticipantId = activeChat?.participants.find((id: string | null) => id !== currentUserId);
   const isOnline = otherParticipantId ? !!onlineUsers[otherParticipantId] : false;
-  const isTyping = activeChat && otherParticipantId ? (typingUsers[activeChat.id] || []).includes(otherParticipantId) : false;
+  const typingUserIds = activeChat ? (typingUsers[activeChat.id] || []) : [];
+  const isTyping = typingUserIds.length > 0;
 
   useEffect(() => {
     messages.forEach(msg => {
@@ -517,9 +713,16 @@ export const MessagesPage: React.FC = () => {
           onReject={rejectCall} 
         />
       )}
-      {callState === CallState.CONNECTED && callMode === 'VIDEO' && (
+      {callState === CallState.OUTBOUND_RINGING && (
+        <OutgoingCallModal 
+          recipientId={callerInfo?.id || null}
+          callMode={callMode}
+          onCancel={endCall}
+        />
+      )}
+      {callState === CallState.CONNECTED && !isGroupCall && callMode === 'VIDEO' && (
         <VideoCallScreen 
-          remoteStream={remoteStream}
+          remoteStreams={remoteStreams}
           localStream={localStream}
           callerInfo={callerInfo}
           duration={duration}
@@ -530,7 +733,7 @@ export const MessagesPage: React.FC = () => {
           onEndCall={endCall}
         />
       )}
-      {callState === CallState.CONNECTED && callMode === 'VOICE' && (
+      {callState === CallState.CONNECTED && !isGroupCall && callMode === 'VOICE' && (
         <ActiveCallBar 
           duration={duration} 
           isMuted={isMuted} 
@@ -538,8 +741,21 @@ export const MessagesPage: React.FC = () => {
           onToggleMute={toggleMute} 
           onToggleVideo={toggleVideo}
           onEndCall={endCall} 
-          remoteStream={remoteStream}
+          remoteStreams={remoteStreams}
           localStream={localStream}
+        />
+      )}
+      {callState === CallState.CONNECTED && isGroupCall && (
+        <GroupCallScreen 
+          remoteStreams={remoteStreams}
+          localStream={localStream}
+          callerInfo={callerInfo}
+          duration={duration}
+          isMuted={isMuted}
+          isVideoEnabled={isVideoEnabled}
+          onToggleMute={toggleMute}
+          onToggleVideo={toggleVideo}
+          onEndCall={endCall}
         />
       )}
       <div className={`messages-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''} ${activeConversationId ? 'has-active-chat' : ''}`}>
@@ -555,7 +771,13 @@ export const MessagesPage: React.FC = () => {
           <h2>Messages {totalUnreadCount > 0 && <span className="header-unread-badge">{totalUnreadCount}</span>}</h2>
           <div className="chat-actions">
             <button className="icon-btn"><Search size={20} /></button>
-            <button className="icon-btn"><Plus size={20} /></button>
+            <button 
+              className="icon-btn" 
+              onClick={() => setIsCreateGroupModalOpen(true)}
+              title="Create Group"
+            >
+              <Plus size={20} />
+            </button>
           </div>
         </div>
         <div className="chats-scroll">
@@ -568,6 +790,7 @@ export const MessagesPage: React.FC = () => {
                 conv={conv} 
                 isActive={activeConversationId === conv.id} 
                 currentUserId={currentUserId}
+                isTyping={(typingUsers[conv.id] || []).length > 0}
                 onClick={() => navigate(`/messages?convid=${conv.id}`)}
               />
             ))}
@@ -583,15 +806,27 @@ export const MessagesPage: React.FC = () => {
               currentUserId={currentUserId} 
               isOnline={isOnline} 
               isTyping={isTyping} 
+              typingUserIds={typingUserIds}
               onDeleteConversation={handleDeleteConversation} 
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+              onLeaveGroup={handleLeaveGroup}
+              onChangeGroupName={handleChangeGroupName}
+              onAddMember={handleAddMember}
               onCallClick={() => {
-                const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
-                if (otherId) initiateCall(otherId, 'VOICE', activeChat.id);
+                if (activeChat.type === 'GROUP') {
+                  initiateCall(null, 'VOICE', activeChat.id);
+                } else {
+                  const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
+                  if (otherId) initiateCall(otherId, 'VOICE', activeChat.id);
+                }
               }}
               onVideoCallClick={() => {
-                const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
-                if (otherId) initiateCall(otherId, 'VIDEO', activeChat.id);
+                if (activeChat.type === 'GROUP') {
+                  initiateCall(null, 'VIDEO', activeChat.id);
+                } else {
+                  const otherId = activeChat.participants.find((id: string) => id !== currentUserId);
+                  if (otherId) initiateCall(otherId, 'VIDEO', activeChat.id);
+                }
               }}
             />
 
@@ -628,6 +863,14 @@ export const MessagesPage: React.FC = () => {
                   onOpenLightbox={(images: string[], index: number) => dispatch(openLightbox({ images, index }))}
                 />
               ))}
+               <div className={`message-list-typing ${isTyping ? 'visible' : ''}`}>
+                  <TypingIndicator 
+                    names={activeChat.type === 'GROUP' 
+                      ? typingUserIds.map(id => activeChat.participantPreviews?.find((p: any) => p.userId === id)?.displayName || 'Someone') 
+                      : []
+                    } 
+                  />
+                </div>
               <div ref={messagesEndRef} />
             </div>
 
@@ -669,6 +912,26 @@ export const MessagesPage: React.FC = () => {
         type={confirmModal.type}
         icon={confirmModal.icon}
       />
+
+      {isCreateGroupModalOpen && (
+        <CreateGroupModal 
+          onClose={() => setIsCreateGroupModalOpen(false)}
+          onCreate={handleCreateGroup}
+          loading={creatingGroup}
+        />
+      )}
+      {activeChat && activeChat.type === 'GROUP' && (
+        <GroupSettingsModal 
+          isOpen={isGroupSettingsOpen}
+          onClose={() => setIsGroupSettingsOpen(false)}
+          conversation={activeChat}
+          currentUserId={currentUserId}
+          onUpdateGroup={(updates) => updateGroup(activeChat.id, updates)}
+          onManageMember={handleManageMember}
+          onLeaveGroup={handleLeaveGroup}
+          initialTab={activeSettingsTab}
+        />
+      )}
     </div>
     </>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, PhoneOff, Mic, MicOff, ShieldCheck, Video, VideoOff } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, ShieldCheck, Video, VideoOff, Users } from 'lucide-react';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { useParticipant } from '../hooks/useParticipant';
 import { CallVisualizer } from './CallVisualizer';
@@ -22,23 +22,66 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({ callerInfo
 
   return (
     <div className="incoming-call-overlay">
-      <div className="incoming-call-card">
+      <div className="incoming-call-card pill-mode">
         <div className="caller-avatar-container">
-          <UserAvatar size={80} userId={callerInfo.id} src={displayAvatar} />
+          <UserAvatar size={48} userId={callerInfo.id} src={displayAvatar} />
           <div className="avatar-ping" />
         </div>
         
         <div className="incoming-call-info">
           <h2>{displayName}</h2>
-          <p>Incoming {callMode === 'VIDEO' ? 'Video' : 'Voice'} Call</p>
+          <p>Incoming {callMode === 'VIDEO' ? 'Video' : 'Voice'}</p>
         </div>
 
         <div className="incoming-call-actions">
-          <button onClick={onReject} className="btn-reject">
-            <PhoneOff size={32} />
+          <button onClick={onReject} className="btn-reject" title="Decline">
+            <PhoneOff size={20} />
           </button>
-          <button onClick={onAccept} className="btn-accept">
-            {callMode === 'VIDEO' ? <Video size={32} /> : <Phone size={32} />}
+          <button onClick={onAccept} className="btn-accept" title="Accept">
+            {callMode === 'VIDEO' ? <Video size={20} /> : <Phone size={20} />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface OutgoingCallModalProps {
+  recipientId: string | null;
+  callMode: 'VOICE' | 'VIDEO';
+  onCancel: () => void;
+}
+
+export const OutgoingCallModal: React.FC<OutgoingCallModalProps> = ({ recipientId, callMode, onCancel }) => {
+  const { participant } = useParticipant(recipientId || '');
+  
+  const displayName = recipientId ? (participant?.name || 'Calling...') : 'Group Call';
+
+  return (
+    <div className="incoming-call-overlay">
+      <div className="incoming-call-card outgoing pill-mode">
+        <div className="caller-avatar-container">
+          {recipientId ? (
+            <UserAvatar size={48} userId={recipientId} />
+          ) : (
+            <div className="group-avatar-placeholder" style={{ 
+              width: 48, height: 48, borderRadius: '50%', background: 'var(--primary-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)'
+            }}>
+              <Users size={24} />
+            </div>
+          )}
+          <div className="avatar-ping outbound" />
+        </div>
+        
+        <div className="incoming-call-info">
+          <h2>{displayName}</h2>
+          <p>{callMode === 'VIDEO' ? 'Video' : 'Voice'} Calling...</p>
+        </div>
+
+        <div className="incoming-call-actions">
+          <button onClick={onCancel} className="btn-reject" title="End Call">
+            <PhoneOff size={20} />
           </button>
         </div>
       </div>
@@ -53,9 +96,35 @@ interface ActiveCallBarProps {
   onToggleMute: () => void;
   onToggleVideo?: () => void;
   onEndCall: () => void;
-  remoteStream: MediaStream | null;
+  remoteStreams: Map<string, MediaStream>;
   localStream?: MediaStream | null;
 }
+
+interface RemoteAudioProps {
+  stream: MediaStream;
+}
+
+export const RemoteAudio: React.FC<RemoteAudioProps> = ({ stream }) => {
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+
+  React.useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.srcObject = stream;
+      audioRef.current.play().catch(err => {
+        console.warn('Audio auto-play failed, might need user interaction', err);
+      });
+    }
+  }, [stream]);
+
+  return (
+    <audio 
+      ref={audioRef} 
+      autoPlay 
+      playsInline
+      style={{ display: 'none' }}
+    />
+  );
+};
 
 export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({ 
   duration, 
@@ -64,7 +133,7 @@ export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({
   onToggleMute, 
   onToggleVideo,
   onEndCall, 
-  remoteStream, 
+  remoteStreams, 
   localStream 
 }) => {
   const formatTime = (seconds: number) => {
@@ -75,13 +144,9 @@ export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({
 
   return (
     <div className="active-call-bar">
-      {remoteStream && (
-        <audio 
-          autoPlay 
-          ref={(audio) => { if (audio) audio.srcObject = remoteStream; }} 
-          style={{ display: 'none' }}
-        />
-      )}
+      {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
+        <RemoteAudio key={userId} stream={stream} />
+      ))}
 
       <div className="call-timer">
         <div className="timer-dot" />
@@ -95,7 +160,9 @@ export const ActiveCallBar: React.FC<ActiveCallBarProps> = ({
 
       <div className="visualizer-container">
         <CallVisualizer stream={localStream || null} height={32} color="rgba(255,255,255,0.4)" />
-        <CallVisualizer stream={remoteStream} height={32} color="#ffffff" />
+        {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
+          <CallVisualizer key={userId} stream={stream} height={32} color="#ffffff" />
+        ))}
       </div>
 
       <div className="active-call-controls">

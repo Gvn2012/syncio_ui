@@ -12,12 +12,13 @@ interface UserAvatarProps {
   userId?: string;
   showLink?: boolean;
   src?: string;
+  isGroup?: boolean;
 }
 
 
 const failedUrls = new Set<string>();
 
-export const UserAvatar: React.FC<UserAvatarProps> = React.memo(({ className, size, userId, showLink = true, src }) => {
+export const UserAvatar: React.FC<UserAvatarProps> = React.memo(({ className, size, userId, showLink = true, src, isGroup }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { id: currentUserId, userDetail, userDetailLoading } = useSelector((state: RootState) => state.user);
   
@@ -27,11 +28,15 @@ export const UserAvatar: React.FC<UserAvatarProps> = React.memo(({ className, si
   const user = isCurrentUser ? userDetail?.userResponse : null;
   const primaryPicture = isCurrentUser ? userDetail?.userProfileResponse?.userProfilePictureResponseList?.find(p => p.primary) : null;
   
-  const displayName = isCurrentUser 
-    ? (user ? `${user.firstName} ${user.lastName}` : 'You') 
-    : (participant?.name || 'User');
+  const displayName = isGroup
+    ? 'Group'
+    : isCurrentUser 
+      ? (user ? `${user.firstName} ${user.lastName}` : 'You') 
+      : (participant?.name || 'User');
   
-  const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2596be&color=fff&size=${size || 200}`;
+  const groupFallback = `https://ui-avatars.com/api/?name=Group&background=4f46e5&color=fff&size=${size || 200}`;
+  const userFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2596be&color=fff&size=${size || 200}`;
+  const fallbackUrl = isGroup ? groupFallback : userFallback;
   
   const avatarUrl = src || (isCurrentUser ? primaryPicture?.url : participant?.avatar) || fallbackUrl;
 

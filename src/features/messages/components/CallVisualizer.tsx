@@ -10,7 +10,7 @@ export const CallVisualizer: React.FC<CallVisualizerProps> = ({ stream, color = 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!stream || !canvasRef.current) return;
+    if (!stream || stream.getAudioTracks().length === 0 || !canvasRef.current) return;
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const source = audioContext.createMediaStreamSource(stream);

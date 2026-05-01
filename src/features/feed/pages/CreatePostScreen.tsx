@@ -31,6 +31,7 @@ import {
   getDefaultCategoryData,
   CATEGORY_MAPPERS
 } from '../constants/post-creation.constants';
+import { useHEIC } from '../../../hooks/useHEIC';
 
 export const CreatePostScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ export const CreatePostScreen: React.FC = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dispatch = useDispatch();
+  const { processFiles } = useHEIC();
 
   const filteredUsers = MOCK_USERS.filter(u => 
     (u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -77,9 +79,10 @@ export const CreatePostScreen: React.FC = () => {
 
   const tagLabels = getTagLabels();
   
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const incomingFiles = Array.from(e.target.files);
+    const rawIncomingFiles = Array.from(e.target.files);
+    const incomingFiles = await processFiles(rawIncomingFiles);
     
 
     const oversizedFiles = incomingFiles.filter(f => f.size > MAX_SIZE_BYTES);

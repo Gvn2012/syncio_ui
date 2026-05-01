@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, ShieldCheck } from 'lucide-react';
-import { UserAvatar } from '../../../../components/UserAvatar';
-import { useParticipant } from '../../hooks/useParticipant';
-import { RemoteAudio } from '../CallComponents';
-import './VideoCallScreen.css';
+import { UserAvatar } from '../../../components/UserAvatar';
+import { useParticipant } from '../hooks/useParticipant';
+import { RemoteAudio } from './CallComponents';
+import './VideoCallScreen/VideoCallScreen.css';
 
 interface RemoteParticipantProps {
   userId: string;
@@ -42,7 +42,7 @@ const RemoteParticipant: React.FC<RemoteParticipantProps> = ({ userId, stream })
   );
 };
 
-interface VideoCallScreenProps {
+interface GroupCallScreenProps {
   remoteStreams: Map<string, MediaStream>;
   localStream: MediaStream | null;
   callerInfo: { id: string; name?: string; avatar?: string } | null;
@@ -54,7 +54,7 @@ interface VideoCallScreenProps {
   onEndCall: () => void;
 }
 
-export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
+export const GroupCallScreen: React.FC<GroupCallScreenProps> = ({
   remoteStreams,
   localStream,
   callerInfo,
@@ -80,8 +80,6 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const displayName = participant?.name || callerInfo?.name || 'Group Call';
-  
   const streamList = Array.from(remoteStreams.entries());
 
   return (
@@ -91,8 +89,8 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
           <div className="remote-video-fallback single">
              <UserAvatar size={120} userId={callerInfo?.id || ''} src={participant?.avatar} />
              <div className="remote-user-info">
-               <h2>{displayName}</h2>
-               <p>Calling... {duration > 0 ? formatTime(duration) : ''}</p>
+               <h2>Group Call</h2>
+               <p>Waiting for others to join... {duration > 0 ? formatTime(duration) : ''}</p>
              </div>
           </div>
         ) : (

@@ -42,5 +42,10 @@ export const MessagesService = {
   getTotalUnreadCount: async (): Promise<APIResource<number>> => {
     const response = await api.get<APIResource<number>>('messaging/unread-count');
     return response.data;
+  },
+
+  getGroupSummary: async (conversationId: string): Promise<APIResource<any>> => {
+    const response = await api.get<APIResource<any>>(`messaging/conversations/${conversationId}/summary`);
+    return response.data;
   }
 };

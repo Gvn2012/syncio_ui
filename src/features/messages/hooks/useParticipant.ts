@@ -11,7 +11,7 @@ export const useParticipant = (participantId: string | null | undefined) => {
   const [loading, setLoading] = useState<boolean>(!!participantId && !participantCache[participantId]);
 
   useEffect(() => {
-    if (!participantId || participantCache[participantId]) {
+    if (!participantId || participantId === 'SYSTEM' || participantCache[participantId]) {
       if (participantId && participantCache[participantId]) {
         setParticipant(participantCache[participantId]);
       }
