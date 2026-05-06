@@ -25,7 +25,7 @@ import type { RootState, AppDispatch } from '../../../store';
 import { fetchUserDetail } from '../../../store/slices/userSlice';
 import { generateDirectChatId } from '../../messages/utils/chatId';
 import { UserAvatar } from '../../../components/UserAvatar';
-import { FeedItem } from '../../feed/components/FeedItem';
+import { FeedItem } from '../../feed/components/FeedItem/FeedItem';
 import { demoFeedItems } from '../../feed/data';
 import { uploadService } from '../../../api/upload.service';
 import { UserService } from '../api/user.service';
@@ -40,12 +40,14 @@ import type {
 } from '../types';
 import './ProfileScreen.css';
 import { useFormatDate } from '../../../common/hooks/useFormatDate';
+import { useScrollRestoration } from '../../../hooks/useScrollRestoration';
 
 export const ProfileScreen: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { format } = useFormatDate();
   const { id: currentUserId, userDetail: currentUserDetail, userDetailLoading: currentUserLoading } = useSelector(
     (state: RootState) => state.user
@@ -61,6 +63,8 @@ export const ProfileScreen: React.FC = () => {
   const userDetail = isOwnProfile ? currentUserDetail : externalUserDetail;
   const isLoading = isOwnProfile ? currentUserLoading : externalLoading;
   const hasError = isOwnProfile ? false : !!externalError;
+
+  useScrollRestoration(!isLoading);
 
   const [isUploading, setIsUploading] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
@@ -93,14 +97,15 @@ export const ProfileScreen: React.FC = () => {
       } else {
         setExternalError(res.message || 'Failed to fetch user profile');
       }
-    } catch (err: any) {
-      setExternalError(err.message || 'Error occurred');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error occurred';
+      setExternalError(errorMessage);
     } finally {
       setExternalLoading(false);
     }
   };
 
-  const handleStatusChange = (status: any) => {
+  const handleStatusChange = (status: { isBlocking: boolean; isBlockedBy: boolean }) => {
     if (status.isBlocking || status.isBlockedBy) {
       setIsBlocked(true);
     } else {
@@ -163,17 +168,27 @@ export const ProfileScreen: React.FC = () => {
 
         dispatch(showSuccess('Profile picture updated successfully. Finalizing metadata...'));
 
-        setTimeout(() => {
+        uploadTimeoutRef.current = setTimeout(() => {
           dispatch(fetchUserDetail(currentUserId));
           setIsUploading(false);
+          uploadTimeoutRef.current = null;
         }, 1500);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to upload profile picture:', error);
-      dispatch(showError(error.message || 'Failed to update profile picture'));
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile picture';
+      dispatch(showError(errorMessage));
       setIsUploading(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -222,7 +237,7 @@ export const ProfileScreen: React.FC = () => {
   const primaryPhone = phones?.find(p => p.primary);
   const primaryPicture = profile?.userProfilePictureResponseList?.find(p => p.primary);
   const avatarUrl = primaryPicture?.url
-    || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=2596be&color=fff&size=200`;
+    || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=var(--primary-rgb)&color=fff&size=200`;
 
   const displayName = `${user.firstName} ${user.lastName}`;
 
@@ -292,9 +307,9 @@ export const ProfileScreen: React.FC = () => {
                 {isOwnProfile && (
                   <div className="avatar-overlay">
                     {isUploading ? (
-                      <Loader2 className="animate-spin" size={32} color="#fff" />
+                      <Loader2 className="animate-spin" size={32} color="var(--bg-surface)" />
                     ) : (
-                      <Camera size={32} color="#fff" />
+                      <Camera size={32} color="var(--bg-surface)" />
                     )}
                   </div>
                 )}
@@ -487,7 +502,7 @@ export const ProfileScreen: React.FC = () => {
                   <span>Employment</span>
                 </h3>
                 <div className="items-list">
-                  {userDetail.employments.map((emp: any) => (
+                  {userDetail.employments.map((emp) => (
                     <div key={emp.id} className="detail-card">
                       <h4 className="detail-title">{emp.jobTitle}</h4>
                       <p className="detail-sub">{emp.organizationName} • {emp.departmentName}</p>

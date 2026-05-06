@@ -19,6 +19,7 @@ import {
   Camera,
   Upload
 } from 'lucide-react';
+import { OrganizationSize } from '../../../api/types/common-types';
 import { authService } from '../api/auth.service';
 import { OrgService } from '../../org/api/org.service';
 import { uploadService } from '../../../api/upload.service';
@@ -54,7 +55,7 @@ export const RegisterPage: React.FC = () => {
       foundedDate: '',
       registrationNumber: '',
       taxId: '',
-      organizationSize: 'MICRO' as any,
+      organizationSize: OrganizationSize.MICRO,
       parentOrganizationId: ''
     }
   });
@@ -89,9 +90,7 @@ export const RegisterPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // Handle nested fields
-    if (name.includes('.')) {
+        if (name.includes('.')) {
       const [parent, child] = name.split('.');
       
       if (parent === 'currentContact') {
@@ -102,7 +101,7 @@ export const RegisterPage: React.FC = () => {
         setFormData(prev => ({
           ...prev,
           [parent]: {
-            ...(prev as any)[parent],
+            ...(prev as Record<string, any>)[parent],
             [child]: value
           }
         }));
@@ -256,9 +255,9 @@ export const RegisterPage: React.FC = () => {
       } else {
         dispatch(showError(response.message || 'Verification request failed.'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Email verification error:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to send verification code.';
+      const errorMsg = error instanceof Error ? error.message : 'Failed to send verification code.';
       dispatch(showError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -296,9 +295,9 @@ export const RegisterPage: React.FC = () => {
         } else {
           dispatch(showError(response.message || 'Invalid verification code.'));
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('OTP verification error:', error);
-        const errorMsg = error.response?.data?.message || 'Verification failed.';
+        const errorMsg = error instanceof Error ? error.message : 'Verification failed.';
         dispatch(showError(errorMsg));
       } finally {
         setIsLoading(false);
@@ -319,9 +318,9 @@ export const RegisterPage: React.FC = () => {
       } else {
         dispatch(showError(response.message || 'Failed to resend code.'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Resend OTP error:', error);
-      const errorMsg = error.response?.data?.message || 'Resend failed.';
+      const errorMsg = error instanceof Error ? error.message : 'Resend failed.';
       dispatch(showError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -344,7 +343,7 @@ export const RegisterPage: React.FC = () => {
         ctx.fill();
         
         const initial = fName ? fName.charAt(0).toUpperCase() : 'U';
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = 'var(--bg-surface)';
         ctx.font = `bold ${Math.floor(size * 0.45)}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -428,9 +427,9 @@ export const RegisterPage: React.FC = () => {
       } else {
         dispatch(showError(registerResponse.error?.message || 'Registration failed.'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      const errorMsg = error.response?.data?.message || 'Registration failed.';
+      const errorMsg = error instanceof Error ? error.message : 'Registration failed.';
       dispatch(showError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -458,9 +457,9 @@ export const RegisterPage: React.FC = () => {
       } else {
         dispatch(showError(response.message || 'Failed to check organization availability.'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Org availability error:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to verify organization name.';
+      const errorMsg = error instanceof Error ? error.message : 'Failed to verify organization name.';
       dispatch(showError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -600,7 +599,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="register-header">
                   <RefreshCw 
                     size={32} 
-                    color="#2596be" 
+                    color="var(--primary)" 
                     data-tooltip="Syncing your digital ecosystem"
                     style={{ cursor: 'pointer' }}
                   />

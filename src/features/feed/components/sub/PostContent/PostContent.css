@@ -1,0 +1,14 @@
+/* Content */
+.feed-content {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.content-rich p {
+  margin-bottom: 8px;
+}
+
+.content-rich p:last-child {
+  margin-bottom: 0;
+}

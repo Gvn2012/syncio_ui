@@ -43,7 +43,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ post: initialPost }) => {
         className={`task-checkbox ${isCompleted ? 'checked' : ''}`}
         onClick={toggleComplete}
       >
-        {isCompleted && <Check size={14} color="#ffffff" strokeWidth={3} />}
+        {isCompleted && <Check size={14} color="var(--bg-surface)" strokeWidth={3} />}
       </div>
 
       <div className="task-card-content">

@@ -10,7 +10,12 @@ import messagingReducer from './slices/messagingSlice';
 const messagingPersistConfig = {
   key: 'messaging',
   storage,
-  blacklist: ['activeConversationId'],
+  blacklist: [
+    'activeConversationId',
+    'onlineUsers',   // Volatile — must come from live WS
+    'typingUsers',   // Volatile — must come from live WS
+    'isConnected',   // Volatile — must come from live WS
+  ],
 };
 
 const rootReducer = combineReducers({
@@ -25,7 +30,7 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  whitelist: ['user', 'ui', 'preferences', 'notification'], // messaging is now handled separately
+  whitelist: ['user', 'ui', 'preferences', 'notification'], 
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

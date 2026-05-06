@@ -226,11 +226,15 @@ const messagingSlice = createSlice({
         };
       }
     },
-    setUserPresence: (state, action: PayloadAction<{ userId: string, status: 'ONLINE' | 'OFFLINE' }>) => {
-      state.onlineUsers[action.payload.userId] = action.payload.status === 'ONLINE';
+    setUserPresence: (state, action: PayloadAction<{ userId?: string, id?: string, status: string }>) => {
+      const userId = action.payload?.userId || action.payload?.id;
+      if (!userId) return;
+      const status = action.payload?.status?.toUpperCase();
+      state.onlineUsers[userId] = status === 'ONLINE' || status === 'ACTIVE';
     },
-    setTyping: (state, action: PayloadAction<{ conversationId: string; userId: string; isTyping: boolean }>) => {
-      const { conversationId, userId, isTyping } = action.payload;
+    setTyping: (state, action: PayloadAction<{ conversationId: string; userId: string; isTyping: boolean | string }>) => {
+      const { conversationId, userId } = action.payload;
+      const isTyping = action.payload.isTyping === true || action.payload.isTyping === 'true';
       if (!state.typingUsers[conversationId]) {
         state.typingUsers[conversationId] = [];
       }
@@ -265,6 +269,10 @@ const messagingSlice = createSlice({
     },
     setMediaUrls: (state, action: PayloadAction<Record<string, string>>) => {
       state.mediaUrls = { ...state.mediaUrls, ...action.payload };
+    },
+    resetPresence: (state) => {
+      state.onlineUsers = {};
+      state.typingUsers = {};
     },
   },
   extraReducers: (builder) => {
@@ -352,7 +360,8 @@ export const {
   setActiveConversation,
   markConversationAsRead,
   setUserId,
-  setMediaUrls
+  setMediaUrls,
+  resetPresence
 } = messagingSlice.actions;
 
 export const selectTotalUnreadCount = (state: RootState) => state.messaging.totalUnreadCount;

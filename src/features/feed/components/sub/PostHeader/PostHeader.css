@@ -1,0 +1,79 @@
+/* Header */
+.feed-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.author-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.author-avatar {
+  border: 2px solid var(--bg-main);
+  transition: transform 0.3s ease;
+}
+
+.author-avatar:hover {
+  transform: scale(1.05);
+}
+
+.author-details .name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.author-details h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.author-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+  font-weight: 500;
+}
+
+.item-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.meta-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timestamp {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.announcement-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: rgba(37, 150, 190, 0.1);
+  color: var(--primary);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.pinned-indicator {
+  color: #fbbf24;
+  display: flex;
+}

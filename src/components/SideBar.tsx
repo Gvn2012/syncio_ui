@@ -37,9 +37,16 @@ export const SideBar: React.FC = () => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const { friendRequestCount } = useSelector((state: RootState) => state.notification);
-  const { id, userDetail } = useSelector((state: RootState) => state.user);
+  const { id, userDetail, orgId } = useSelector((state: RootState) => state.user);
   const { isSidebarOpen } = useSelector((state: RootState) => state.ui);
   const totalUnreadCount = useSelector(selectTotalUnreadCount);
+
+  const filteredNavItems = navItems.filter(item => {
+    if (!orgId && ['organizations', 'tasks'].includes(item.id)) {
+      return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (id && !userDetail) {
@@ -82,7 +89,7 @@ export const SideBar: React.FC = () => {
 
       <nav className="sidebar-nav">
         <ul>
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <li key={item.id}>
               <Link 
                 to={item.path} 

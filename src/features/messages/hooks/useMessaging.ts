@@ -34,6 +34,9 @@ export const useMessaging = () => {
 
     stompService.addPendingMessage(messageId, conversationId, content);
 
+    if (!stompService.isConnected) {
+      console.warn('[Messaging] Sending while disconnected — message will be queued');
+    }
 
     stompService.publish('/app/chat.send', {
       id: messageId,
@@ -78,7 +81,7 @@ export const useMessaging = () => {
     stompService.publish('/app/chat.typing', {
       conversationId,
       recipientId,
-      isTyping: isTyping.toString()
+      isTyping,
     });
   }, []);
 

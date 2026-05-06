@@ -51,12 +51,12 @@ export const LoginPage: React.FC = () => {
       });
 
       if (response.success && response.data) {
-        const { userId, userRole, username, orgId } = response.data as any;
+        const data = response.data;
         dispatch(setUser({
-          id: userId,
-          username: username || formData.username,
-          role: userRole as String[],
-          orgId
+          id: data.userId,
+          username: formData.username,
+          role: [data.userRole as unknown as string],
+          orgId: data.orgId
         }));
         navigate('/');
       } else {
@@ -64,7 +64,7 @@ export const LoginPage: React.FC = () => {
           'Verification failed. Please check your credentials.'
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setErrorMsg(
         'Unauthorized access. Please check your credentials.'
       );
@@ -101,7 +101,7 @@ export const LoginPage: React.FC = () => {
                   data-tooltip-position="bottom"
                   style={{ cursor: 'pointer' }}
                 >
-                  <RefreshCw size={32} color="#ffffff" />
+                  <RefreshCw size={32} color="var(--bg-surface)" />
                   <span className="brand-name">SyncIO</span>
                 </div>
                 
@@ -137,7 +137,7 @@ export const LoginPage: React.FC = () => {
                   data-tooltip-position="bottom"
                   style={{ cursor: 'pointer' }}
                 >
-                  <RefreshCw size={32} color="#ffffff" />
+                  <RefreshCw size={32} color="var(--bg-surface)" />
                   <span className="brand-name">SyncIO</span>
                 </div>
                 
@@ -265,7 +265,7 @@ export const LoginPage: React.FC = () => {
                 ? (isWorkspace ? 'Accessing Workspace...' : 'Accessing Hub...') 
                 : (isWorkspace ? 'Sign In to Workspace' : 'Sign In to Hub')
               }
-              {!isLoading && <LogIn size={20} style={{ marginLeft: '8px' }} />}
+              {!isLoading && <LogIn size={20} className="login-btn-icon" />}
             </button>
           </form>
 
@@ -274,7 +274,7 @@ export const LoginPage: React.FC = () => {
           </footer>
           
           <div className="security-badge">
-            <ShieldCheck size={16} color="#059669" />
+            <ShieldCheck size={16} color="var(--success)" />
             <span>SECURED BY SYNCIO ENCRYPTION</span>
           </div>
         </motion.div>

@@ -1,0 +1,53 @@
+/* Category Selector */
+.category-selector {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: var(--bg-main);
+  border-radius: var(--radius-lg);
+  width: fit-content;
+}
+
+.category-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  position: relative;
+  background: transparent;
+  transition: color 0.3s ease;
+}
+
+.category-active-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-surface-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  z-index: 1;
+}
+
+/* Subtle brand glow for the active pill */
+.category-pill.active .category-active-bg {
+  border-bottom: 2px solid var(--active-color);
+  background: var(--bg-surface-elevated);
+}
+
+.category-pill-content {
+  position: relative;
+  z-index: 2; /* Ensure text/icon stay above the sliding box */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.category-pill.active {
+  color: var(--active-color);
+}

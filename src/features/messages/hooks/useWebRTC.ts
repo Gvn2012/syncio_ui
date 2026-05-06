@@ -665,7 +665,6 @@ export const useWebRTC = () => {
 
     window.addEventListener('webrtc-signal', handleSignal as any);
     return () => window.removeEventListener('webrtc-signal', handleSignal as any);
-    // Stable deps only — callState is read via callStateRef to avoid teardown/re-register
   }, [createPeerConnection, cleanupCall, sendSignal]);
 
   useEffect(() => {
@@ -678,11 +677,15 @@ export const useWebRTC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [endCall]);
 
-  // Timer that computes duration from the shared callStartTime
+  useEffect(() => {
+    return () => {
+      endCall();
+    };
+  }, [endCall]);
+
   useEffect(() => {
     let interval: any;
     if (callState === CallState.CONNECTED && callStartTime) {
-      // Immediately set the correct elapsed time (for late joiners)
       setDuration(Math.floor((Date.now() - callStartTime) / 1000));
       interval = setInterval(() => {
         setDuration(Math.floor((Date.now() - callStartTime) / 1000));

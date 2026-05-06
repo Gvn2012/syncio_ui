@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Plus, Check, CheckCheck, Loader, AlertTriangle, Trash, ArrowDown, Eye, Menu, LogOut } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ConversationType, MessageStatusType, MessageContentType } from '../types';
+import { ConversationType, MessageStatusType, MessageContentType, type Conversation, type Participant } from '../types';
 import type { MessageResponse } from '../types';
 import { uploadService, isUrlExpired } from '../../../api/upload.service';
 import { compressFileIfNeeded } from '../../../common/utils/fileCompression';
@@ -22,18 +22,18 @@ import { isDirectChatId, getParticipantsFromDirectChatId } from '../utils/chatId
 import { checkImageCache } from '../../../hooks/useCachedImage';
 import './MessagesPage.css';
 
-import { ChatItem } from '../components/ChatItem';
-import { ChatHeader } from '../components/ChatHeader';
-import { TypingIndicator } from '../components/TypingIndicator';
-import { ConfirmModal } from '../components/ConfirmModal';
-import { MessageGroup } from '../components/MessageGroup';
-import { MessageInput } from '../components/MessageInput';
-import CreateGroupModal from '../components/CreateGroupModal';
-import { GroupSettingsModal } from '../components/GroupSettingsModal';
+import { ChatItem } from '../components/ChatItem/ChatItem';
+import { ChatHeader } from '../components/ChatHeader/ChatHeader';
+import { TypingIndicator } from '../components/TypingIndicator/TypingIndicator';
+import { ConfirmModal } from '../components/ConfirmModal/ConfirmModal';
+import { MessageGroup } from '../components/MessageGroup/MessageGroup';
+import { MessageInput } from '../components/MessageInput/MessageInput';
+import CreateGroupModal from '../components/CreateGroupModal/CreateGroupModal';
+import { GroupSettingsModal } from '../components/GroupSettingsModal/GroupSettingsModal';
 import { useWebRTC, CallState } from '../hooks/useWebRTC';
-import { IncomingCallModal, ActiveCallBar, OutgoingCallModal } from '../components/CallComponents';
+import { IncomingCallModal, ActiveCallBar, OutgoingCallModal } from '../components/CallComponents/CallComponents';
 import { VideoCallScreen } from '../components/VideoCallScreen/VideoCallScreen';
-import { GroupCallScreen } from '../components/GroupCallScreen';
+import { GroupCallScreen } from '../components/GroupCallScreen/GroupCallScreen';
 import { callApi } from '../api/call.service';
 
 const formatTimestamp = (timestamp: string | undefined): Date => {
@@ -72,7 +72,7 @@ export const MessagesPage: React.FC = () => {
       callApi.getCallSession(initialCallId)
         .then(session => {
           if (session.status === 'ACTIVE') {
-             reconnectToCall(initialCallId, session.callMode as any, session.conversationId);
+             reconnectToCall(initialCallId, session.callMode as 'VOICE' | 'VIDEO', session.conversationId);
           } else {
              throw new Error('Call inactive');
           }
@@ -138,6 +138,10 @@ export const MessagesPage: React.FC = () => {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [expectingNewGroup, setExpectingNewGroup] = useState<boolean>(false);
   const prevConversationsCount = useRef(conversations.length);
+  const creatingGroupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uploadingItemsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioUploadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (expectingNewGroup && conversations.length > prevConversationsCount.current) {
@@ -373,7 +377,7 @@ export const MessagesPage: React.FC = () => {
     if (existing) return existing;
     if (isDirectChatId(activeConversationId)) {
       const participantIds = getParticipantsFromDirectChatId(activeConversationId);
-      return { id: activeConversationId, type: ConversationType.DIRECT, participants: participantIds, name: '', unreadCount: 0, isEphemeral: true } as any;
+      return { id: activeConversationId, type: ConversationType.DIRECT, participants: participantIds, name: '', unreadCount: 0, isEphemeral: true } as unknown as Conversation;
     }
     return null;
   }, [activeConversationId, conversations]);
@@ -443,12 +447,13 @@ export const MessagesPage: React.FC = () => {
     setExpectingNewGroup(true);
     createGroup(name, participantIds);
     setIsCreateGroupModalOpen(false);
-    setTimeout(() => setCreatingGroup(false), 2000);
+    if (creatingGroupTimeoutRef.current) clearTimeout(creatingGroupTimeoutRef.current);
+    creatingGroupTimeoutRef.current = setTimeout(() => setCreatingGroup(false), 2000);
   }, [createGroup]);
 
   const participantAvatars = useMemo(() => {
     const map: Record<string, string> = {};
-    activeChat?.participantDetails?.forEach((p: any) => {
+    activeChat?.participantDetails?.forEach((p: Participant) => {
       if (p.avatar) map[p.id] = p.avatar;
     });
     return map;
@@ -557,7 +562,8 @@ export const MessagesPage: React.FC = () => {
     }
     
     setInputText('');
-    setTimeout(() => scrollToBottom('smooth'), 100);
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => scrollToBottom('smooth'), 100);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -586,7 +592,7 @@ export const MessagesPage: React.FC = () => {
       const processedFiles = await Promise.all(files.map(file => file.type.startsWith('image/') ? compressFileIfNeeded(file) : file));
       const requests = processedFiles.map(file => ({
         fileName: file.name, fileContentType: file.type, size: file.size, conversationId: activeConversationId,
-        mediaType: file.type.startsWith('video/') ? 'VIDEO' : file.type.startsWith('audio/') ? 'AUDIO' : 'IMAGE' as any, senderId: currentUserId
+        mediaType: (file.type.startsWith('video/') ? 'VIDEO' : file.type.startsWith('audio/') ? 'AUDIO' : 'IMAGE') as 'IMAGE' | 'VIDEO' | 'AUDIO', senderId: currentUserId
       }));
 
       const res = await uploadService.requestMessageMediaBatchUploadUrl({ requests });
@@ -623,7 +629,8 @@ export const MessagesPage: React.FC = () => {
       console.error('Batch upload failed', error);
       dispatch(showError('Failed to upload some media items'));
     } finally {
-      setTimeout(() => setUploadingItems([]), 2000);
+      if (uploadingItemsTimeoutRef.current) clearTimeout(uploadingItemsTimeoutRef.current);
+      uploadingItemsTimeoutRef.current = setTimeout(() => setUploadingItems([]), 2000);
     }
   };
 
@@ -641,7 +648,7 @@ export const MessagesPage: React.FC = () => {
     try {
       const requests = [{
         fileName: file.name, fileContentType: file.type, size: file.size, conversationId: activeConversationId,
-        mediaType: 'AUDIO' as any, senderId: currentUserId
+        mediaType: 'AUDIO' as 'AUDIO', senderId: currentUserId
       }];
 
       const res = await uploadService.requestMessageMediaBatchUploadUrl({ requests });
@@ -655,7 +662,8 @@ export const MessagesPage: React.FC = () => {
       console.error('Audio upload failed', error);
       dispatch(showError('Failed to send voice message'));
     } finally {
-      setTimeout(() => setUploadingItems(prev => prev.filter(item => item.id !== newUploadingItem.id)), 2000);
+      if (audioUploadingTimeoutRef.current) clearTimeout(audioUploadingTimeoutRef.current);
+      audioUploadingTimeoutRef.current = setTimeout(() => setUploadingItems(prev => prev.filter(item => item.id !== newUploadingItem.id)), 2000);
     }
   };
 
@@ -688,7 +696,9 @@ export const MessagesPage: React.FC = () => {
 
   const otherParticipantId = activeChat?.participants.find((id: string | null) => id !== currentUserId);
   const isOnline = otherParticipantId ? !!onlineUsers[otherParticipantId] : false;
-  const typingUserIds = activeChat ? (typingUsers[activeChat.id] || []) : [];
+  const typingUserIds = activeChat 
+    ? (typingUsers[activeChat.id] || []).filter(id => id !== currentUserId) 
+    : [];
   const isTyping = typingUserIds.length > 0;
 
   useEffect(() => {
@@ -702,6 +712,15 @@ export const MessagesPage: React.FC = () => {
       }
     });
   }, [messages, currentUserId, deleteMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (creatingGroupTimeoutRef.current) clearTimeout(creatingGroupTimeoutRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (uploadingItemsTimeoutRef.current) clearTimeout(uploadingItemsTimeoutRef.current);
+      if (audioUploadingTimeoutRef.current) clearTimeout(audioUploadingTimeoutRef.current);
+    };
+  }, []);
 
   return (
     <>
@@ -790,7 +809,7 @@ export const MessagesPage: React.FC = () => {
                 conv={conv} 
                 isActive={activeConversationId === conv.id} 
                 currentUserId={currentUserId}
-                isTyping={(typingUsers[conv.id] || []).length > 0}
+                isTyping={(typingUsers[conv.id] || []).filter(id => id !== currentUserId).length > 0}
                 onClick={() => navigate(`/messages?convid=${conv.id}`)}
               />
             ))}
@@ -866,7 +885,7 @@ export const MessagesPage: React.FC = () => {
                <div className={`message-list-typing ${isTyping ? 'visible' : ''}`}>
                   <TypingIndicator 
                     names={activeChat.type === 'GROUP' 
-                      ? typingUserIds.map(id => activeChat.participantPreviews?.find((p: any) => p.userId === id)?.displayName || 'Someone') 
+                      ? typingUserIds.map(id => activeChat.participantPreviews?.find((p: { userId: string; displayName: string }) => p.userId === id)?.displayName || 'Someone') 
                       : []
                     } 
                   />

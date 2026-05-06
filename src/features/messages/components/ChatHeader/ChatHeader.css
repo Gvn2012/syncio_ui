@@ -1,0 +1,80 @@
+.chat-header {
+  height: 72px;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(var(--bg-surface-rgb), 0.8);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-toggle {
+  margin-right: 4px;
+}
+
+.chat-header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.chat-header-name {
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.chat-header-status {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-header-status.online {
+  color: #10b981;
+}
+
+.chat-header-status.offline {
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chat-header-status.online .status-dot {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.chat-header-status.offline .status-dot {
+  background-color: var(--text-muted);
+  box-shadow: none;
+}

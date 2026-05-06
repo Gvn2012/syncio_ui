@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, ShieldCheck } from 'lucide-react';
 import { UserAvatar } from '../../../../components/UserAvatar';
 import { useParticipant } from '../../hooks/useParticipant';
-import { RemoteAudio } from '../CallComponents';
+import { RemoteAudio } from '../CallComponents/CallComponents';
 import './VideoCallScreen.css';
 
 interface RemoteParticipantProps {

@@ -1,14 +1,19 @@
 import { Client, type IFrame, type IMessage } from '@stomp/stompjs';
 
 type ConnectionListener = (connected: boolean) => void;
-type MessageHandler = (body: any) => void;
+type MessageHandler = (body: unknown) => void;
 
 interface QueuedMessage {
   destination: string;
   body: string;
 }
 
-function createKeepaliveWorker(): Worker | null {
+const EPHEMERAL_DESTINATIONS = ['typing', 'presence'] as const;
+
+const isEphemeral = (destination: string): boolean =>
+  EPHEMERAL_DESTINATIONS.some((keyword) => destination.includes(keyword));
+
+const createKeepaliveWorker = (): Worker | null => {
   try {
     const code = `
       let interval = null;
@@ -31,7 +36,7 @@ function createKeepaliveWorker(): Worker | null {
     console.warn('[STOMP] Web Worker not available, background keepalive disabled');
     return null;
   }
-}
+};
 
 class StompService {
   private client: Client | null = null;
@@ -49,6 +54,9 @@ class StompService {
   private lastActivityTime = 0;
   private hardReconnectCount = 0;
   private reconnectInProgress = false;
+  private activeSubscriptions = new Set<string>();
+
+  private presenceInterval: ReturnType<typeof setInterval> | null = null;
 
   get isConnected(): boolean {
     return this._connected;
@@ -59,9 +67,9 @@ class StompService {
   }
 
   async connect(userId: string): Promise<void> {
-    console.log(`[STOMP] connect called with userId: ${userId}`);
+    console.log(`[STOMP] connect called, userId: ${userId}`);
     if (this.userId === userId && (this.client?.active || this._connected)) {
-      console.log('[STOMP] Already connected or active, ignoring connect request.');
+      console.log('[STOMP] Already connected or active, skipping.');
       return;
     }
 
@@ -83,22 +91,22 @@ class StompService {
     if (this.client) return;
 
     const brokerUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`;
-    console.log(`[STOMP] Creating client with brokerURL: ${brokerUrl}`);
+    console.log(`[STOMP] Creating client, brokerURL: ${brokerUrl}`);
 
     this.client = new Client({
       brokerURL: brokerUrl,
       connectHeaders: { 'X-User-Id': userId },
-      heartbeatIncoming: 20000,
-      heartbeatOutgoing: 20000,
+      heartbeatIncoming: 10_000,
+      heartbeatOutgoing: 10_000,
       reconnectDelay: 3000,
       debug: (msg) => {
-        if (msg.includes('<<<')) {
+        // Track both incoming and outgoing frames for health checks
+        if (msg.includes('<<<') || msg.includes('>>>')) {
           this.lastActivityTime = Date.now();
         }
-        console.log('[STOMP RAW]', msg);
       },
       onConnect: () => {
-        console.log('[STOMP] onConnect triggered successfully!');
+        console.log('[STOMP] onConnect triggered');
         this.onConnected();
       },
       onStompError: (frame) => {
@@ -106,7 +114,7 @@ class StompService {
         this.onError(frame);
       },
       onWebSocketClose: (evt) => {
-        console.log('[STOMP] onWebSocketClose triggered:', evt);
+        console.log('[STOMP] onWebSocketClose:', evt);
         this.onDisconnected(evt);
       },
       onWebSocketError: (err) => {
@@ -118,28 +126,6 @@ class StompService {
     this.client.activate();
     this.startPendingMessageRetry();
     this.startKeepalive();
-    this.setupBrowserListeners();
-  }
-
-  private setupBrowserListeners(): void {
-    if (typeof window === 'undefined') return;
-
-    window.addEventListener('online', () => {
-      console.log('[STOMP] Network back online, checking connection...');
-      if (!this.client?.active || !this._connected) {
-        this.forceReconnect();
-      }
-    });
-
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        console.log('[STOMP] Tab visible, checking connection health...');
-        if (!this.isHealthy()) {
-          console.warn('[STOMP] Connection unhealthy after visibility change, forcing reconnect');
-          this.forceReconnect();
-        }
-      }
-    });
   }
 
   async disconnect(): Promise<void> {
@@ -164,13 +150,20 @@ class StompService {
     };
   }
 
-  publish(destination: string, body: any): void {
+  publish(destination: string, body: unknown): void {
     const payload = typeof body === 'string' ? body : JSON.stringify(body);
 
     if (this.client?.connected) {
+      console.log(`[STOMP] → ${destination}`);
       this.client.publish({ destination, body: payload });
       this.lastActivityTime = Date.now();
     } else {
+      // Drop time-sensitive events — they're stale by the time connection returns
+      if (isEphemeral(destination)) {
+        console.warn(`[STOMP] Dropped ephemeral event (disconnected): ${destination}`);
+        return;
+      }
+      console.warn(`[STOMP] Queued (disconnected): ${destination}`);
       this.messageQueue.push({ destination, body: payload });
     }
   }
@@ -186,23 +179,27 @@ class StompService {
   onConnectionChange(listener: ConnectionListener): () => void {
     this.connectionListeners.add(listener);
     listener(this._connected);
-    return () => { this.connectionListeners.delete(listener); };
+    return () => {
+      this.connectionListeners.delete(listener);
+    };
   }
 
   isHealthy(): boolean {
     if (!this._connected) return false;
-    return (Date.now() - this.lastActivityTime) < 90_000;
+    // 3 minute threshold — tolerates browser throttling of background tabs
+    return (Date.now() - this.lastActivityTime) < 180_000;
   }
 
   forceReconnect(): void {
     if (!this.userId || this.reconnectInProgress) return;
-    
+
     this.reconnectInProgress = true;
     this.hardReconnectCount++;
     const uid = this.userId;
     console.log(`[STOMP] Force reconnecting (attempt #${this.hardReconnectCount})...`);
 
     this.stopKeepalive();
+    this.stopPresenceHeartbeat();
     this.setConnected(false);
 
     const oldClient = this.client;
@@ -217,12 +214,20 @@ class StompService {
     };
 
     if (oldClient) {
-      try { oldClient.forceDisconnect(); } catch { /* noop */ }
+      try {
+        oldClient.forceDisconnect();
+      } catch {
+        /* noop */
+      }
       oldClient.deactivate().then(doReconnect).catch(doReconnect);
     } else {
       doReconnect();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Keepalive Worker
+  // ---------------------------------------------------------------------------
 
   private startKeepalive(): void {
     this.stopKeepalive();
@@ -239,7 +244,7 @@ class StompService {
       const sinceLast = now - this.lastActivityTime;
 
       if (this.client?.connected && this._connected) {
-        if (sinceLast > 90_000) {
+        if (sinceLast > 180_000) {
           console.warn(`[STOMP] Watchdog: No activity for ${Math.round(sinceLast / 1000)}s, forcing reconnect`);
           this.forceReconnect();
         }
@@ -262,29 +267,73 @@ class StompService {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Presence Heartbeat
+  // ---------------------------------------------------------------------------
+
+  private startPresenceHeartbeat(): void {
+    this.stopPresenceHeartbeat();
+
+    // Announce online immediately upon connect
+    this.publishPresence('ONLINE');
+
+    // Re-announce every 60s to keep server-side presence alive
+    this.presenceInterval = setInterval(() => {
+      if (this.client?.connected) {
+        this.publishPresence('ONLINE');
+      }
+    }, 60_000);
+  }
+
+  private stopPresenceHeartbeat(): void {
+    if (this.presenceInterval) {
+      clearInterval(this.presenceInterval);
+      this.presenceInterval = null;
+    }
+  }
+
+  private publishPresence(status: 'ONLINE' | 'OFFLINE'): void {
+    if (!this.client?.connected || !this.userId) return;
+    this.client.publish({
+      destination: '/app/presence.update',
+      body: JSON.stringify({ userId: this.userId, status }),
+    });
+    console.log(`[STOMP] → Presence: ${status}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Connection lifecycle
+  // ---------------------------------------------------------------------------
+
   private onConnected(): void {
     this.hardReconnectCount = 0;
     this.reconnectInProgress = false;
     this.lastActivityTime = Date.now();
     this.setConnected(true);
     this.subscribeAll();
-    this.flushMessageQueue();
+
+    // Delay queue flush to let subscriptions settle before publishing
+    setTimeout(() => this.flushMessageQueue(), 500);
     this.retryPendingMessages();
+    this.startPresenceHeartbeat();
   }
 
-  private onDisconnected(evt?: any): void {
+  private onDisconnected(evt?: CloseEvent): void {
     if (evt) {
       console.log(`[STOMP] WebSocket closed (code: ${evt.code}, reason: ${evt.reason})`);
     }
     this.setConnected(false);
     this.activeSubscriptions.clear();
+    this.stopPresenceHeartbeat();
   }
 
   private onError(frame: IFrame): void {
     console.error('[STOMP Error]', frame.headers['message'], frame.body);
   }
 
-  private activeSubscriptions = new Set<string>();
+  // ---------------------------------------------------------------------------
+  // Subscriptions
+  // ---------------------------------------------------------------------------
 
   private subscribeAll(): void {
     this.activeSubscriptions.clear();
@@ -299,14 +348,18 @@ class StompService {
 
     this.client.subscribe(destination, (message: IMessage) => {
       try {
-        const body = JSON.parse(message.body);
-        this.handlers.get(destination)?.forEach(h => h(body));
+        const body = JSON.parse(message.body) as unknown;
+        this.handlers.get(destination)?.forEach((h) => h(body));
       } catch {
-        this.handlers.get(destination)?.forEach(h => h(message.body));
+        this.handlers.get(destination)?.forEach((h) => h(message.body));
       }
     });
     this.activeSubscriptions.add(destination);
   }
+
+  // ---------------------------------------------------------------------------
+  // Message queue & retry
+  // ---------------------------------------------------------------------------
 
   private flushMessageQueue(): void {
     while (this.messageQueue.length > 0) {
@@ -362,26 +415,37 @@ class StompService {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
   private setConnected(connected: boolean): void {
     if (this._connected === connected) return;
     this._connected = connected;
-    this.connectionListeners.forEach(l => l(connected));
+    this.connectionListeners.forEach((l) => l(connected));
   }
 
   private async teardown(): Promise<void> {
     this.stopPendingMessageRetry();
     this.stopKeepalive();
+    this.stopPresenceHeartbeat();
+
+    // Try to announce offline before disconnecting
+    this.publishPresence('OFFLINE');
 
     this.activeSubscriptions.clear();
 
     if (this.client) {
       const oldClient = this.client;
       this.client = null;
-      this.deactivatingPromise = oldClient.deactivate().then(() => {
-        this.deactivatingPromise = null;
-      }).catch(() => {
-        this.deactivatingPromise = null;
-      });
+      this.deactivatingPromise = oldClient
+        .deactivate()
+        .then(() => {
+          this.deactivatingPromise = null;
+        })
+        .catch(() => {
+          this.deactivatingPromise = null;
+        });
       await this.deactivatingPromise;
     }
 

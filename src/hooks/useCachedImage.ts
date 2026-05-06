@@ -3,9 +3,7 @@ import { urlCache } from '../common/utils/urlCache';
 
 const CACHE_NAME = 'syncio-image-cache-v1';
 
-// In-memory cache for blob URLs to prevent flickering on component remounts
 const blobUrlCache = new Map<string, string>();
-// Map to track in-flight requests to prevent duplicate blob URL creation
 const pendingRequests = new Map<string, Promise<string>>();
 
 export const checkImageCache = async (cacheKey: string | undefined): Promise<boolean> => {
@@ -55,10 +53,14 @@ export const useCachedImage = (src: string | undefined, cacheKey?: string) => {
 
     const loadAndCacheImage = async () => {
       if (!src || src.includes('ui-avatars.com')) return;
-      
+      if (src.includes('storage.googleapis.com') && (src.includes('X-Goog-Signature') || src.includes('GoogleAccessId'))) {
+        setCachedSrc(src);
+        setIsLoading(false);
+        return;
+      }
+
       const key = effectiveKey!;
       
-      // If there's already a request in flight for this key, wait for it
       if (pendingRequests.has(key)) {
         try {
           const blobUrl = await pendingRequests.get(key);
@@ -66,7 +68,6 @@ export const useCachedImage = (src: string | undefined, cacheKey?: string) => {
           setIsLoading(false);
           return;
         } catch (err) {
-          // If the pending request failed, we continue and try again
         }
       }
 

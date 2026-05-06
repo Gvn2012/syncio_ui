@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { setLightboxImage, showError } from '../../../store/slices/uiSlice';
-import { CategorySelector } from '../components/create/CategorySelector';
-import { CategorySpecificForms } from '../components/create/CategorySpecificForms';
+import { CategorySelector } from '../components/create/CategorySelector/CategorySelector';
+import { CategorySpecificForms } from '../components/create/CategorySpecificForms/CategorySpecificForms';
 import { PostCategory } from '../types';
 import { PostVisibility, type PostCreateRequest } from '../types/post-request.types';
 import { FeedService } from '../api/feed.service';

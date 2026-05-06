@@ -12,7 +12,7 @@ export interface MessageMediaUploadRequestPayload {
   fileContentType: string;
   size: number;
   conversationId: string;
-  mediaType: 'IMAGE' | 'VIDEO';
+  mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO';
   senderId: string;
 }
 

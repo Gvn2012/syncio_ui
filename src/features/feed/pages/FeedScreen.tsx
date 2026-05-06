@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { FeedItem } from '../components/FeedItem';
-import { FeedSkeleton } from '../components/FeedSkeleton';
+import { FeedItem } from '../components/FeedItem/FeedItem';
+import { FeedSkeleton } from '../components/FeedSkeleton/FeedSkeleton';
 import { useInfiniteFeed } from '../hooks/useInfiniteFeed';
 import { useIntersection } from '../../../hooks/useIntersection';
 import { Plus, Filter, ArrowUpDown, Search, Loader2 } from 'lucide-react';
 import './FeedScreen.css';
 import { Link } from 'react-router-dom';
+import { useScrollRestoration } from '../../../hooks/useScrollRestoration';
 
 export const FeedScreen: React.FC = () => {
   const { 
@@ -17,6 +18,8 @@ export const FeedScreen: React.FC = () => {
     isError,
     isEmpty 
   } = useInfiniteFeed(10);
+
+  useScrollRestoration(!isLoading, posts.length);
 
   const { elementRef, isIntersecting } = useIntersection({
     rootMargin: '200px',

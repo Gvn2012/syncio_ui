@@ -1,0 +1,136 @@
+.post-discussion-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-top: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.discussion-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(var(--primary-rgb), 0.02);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title-group h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.discussion-icon {
+  color: var(--primary);
+}
+
+.back-to-comments {
+  padding: 6px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  background: rgba(var(--primary-rgb), 0.05);
+}
+
+.back-to-comments:hover {
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+}
+
+.comment-count-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--bg-search);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+
+.discussion-content {
+  padding: 24px;
+  min-height: 200px;
+}
+
+.comments-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.replies-context {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+}
+
+.replies-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.replies-divider span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.replies-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.no-comments-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.no-comments-state p {
+  max-width: 250px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.discussion-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background: rgba(var(--bg-main-rgb), 0.5);
+}
+
+/* Ensure CommentItem inside discussion looks good */
+.post-discussion-card .comment-item-root {
+  border-bottom: 1px solid rgba(var(--border-color-rgb), 0.3);
+  padding-bottom: 20px;
+}
+
+.post-discussion-card .comment-item-root:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}

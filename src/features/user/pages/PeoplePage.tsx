@@ -31,6 +31,7 @@ import type { RootState, AppDispatch } from '../../../store';
 import { UserAvatar } from '../../../components/UserAvatar';
 import { showError, showSuccess } from '../../../store/slices/uiSlice';
 import { fetchFriendRequestCount, fetchUnreadCount } from '../../../store/slices/notificationSlice';
+import { useScrollRestoration } from '../../../hooks/useScrollRestoration';
 import './PeoplePage.css';
 
 type TabType = 'friends' | 'requests_received' | 'requests_sent' | 'following' | 'followers' | 'blocked';
@@ -45,6 +46,9 @@ export const PeoplePage: React.FC = () => {
   const activeTab = (searchParams.get('v') as TabType) || 'friends';
 
   const [loading, setLoading] = useState(false);
+
+  // Restore scroll position when data is loaded
+  useScrollRestoration(!loading);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(12);
   

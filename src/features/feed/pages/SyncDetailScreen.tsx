@@ -1,17 +1,21 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FeedItem } from '../components/FeedItem';
-import { FeedSkeleton } from '../components/FeedSkeleton';
+import { FeedItem } from '../components/FeedItem/FeedItem';
+import { FeedSkeleton } from '../components/FeedSkeleton/FeedSkeleton';
 import { usePost } from '../hooks/usePost';
-import { ArrowLeft, MessageSquare, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import './SyncDetailScreen.css';
 
 import { motion } from 'framer-motion';
+import { useScrollRestoration } from '../../../hooks/useScrollRestoration';
+import { PostDiscussion } from '../components/sub/PostDiscussion/PostDiscussion';
 
 export const SyncDetailScreen: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = usePost(postId);
+
+  useScrollRestoration(!isLoading);
 
   const post = data?.data;
 
@@ -47,15 +51,9 @@ export const SyncDetailScreen: React.FC = () => {
 
           {post && (
             <div className="focused-sync">
-              <FeedItem post={post} />
+              <FeedItem post={post} hideComment={true} />
               
-              <div className="comments-placeholder-card">
-                <div className="placeholder-header">
-                  <MessageSquare size={18} />
-                  <span>Discussion</span>
-                </div>
-                <p>Synchronization of comments is coming soon to your curated workspace.</p>
-              </div>
+              <PostDiscussion postId={post.id} />
             </div>
           )}
         </div>
